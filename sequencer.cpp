@@ -42,7 +42,7 @@ class Properties {
 
 
 
-Sequencer::Sequencer(Manager<Value, sizeof(Envelope)>& valueManager, SynthesizerIf& syn) : syn_(syn), valueManager_(valueManager)
+Sequencer::Sequencer(Manager<Value, sizeof(Envelope)>& valueManager, SynthesizerIf& syn) : subParsers_(40), syn_(syn), valueManager_(valueManager)
 {
 }
 
@@ -86,7 +86,7 @@ bool Sequencer::Stack::parseParanthesis(Ittr& ittr, float& paranTime)
 		unsigned depth = 0;
 		while (*tmp != 0) {
 			if (*tmp == ',' && depth == 0) {
-				Stack* nw = seq_.subParsers_.mk(*this);
+				ptr<Stack> nw = seq_.subParsers_.mk(*this);
 				nw->next_ = child_;
 				nw->ittr_ = tmp;
 				++(nw->ittr_);
@@ -190,14 +190,17 @@ float Sequencer::Stack::timeToNext() const
 {
 	float smallest = 10000.0;
 	if (child_) {
-		for (Stack* s = child_; s; s = s->next_ ) {
+		for (ptr<Stack> s = child_; s; s = s->next_ ) {
 			if (!s->ended_ && s->timeToNext() <= smallest) {
 				smallest = s->timeToNext();
 			}
 		}
 		return timeToNext_ + smallest;
 	}
-	return timeToNext_;
+	if (!ended_)
+		return timeToNext_;
+	else
+		return 1000.0;
 }
 
 bool Sequencer::Stack::parseSpace(Ittr& ittr)
@@ -217,7 +220,7 @@ bool Sequencer::Stack::parse()
 	if (child_) {
 		float ttn = timeToNext();
 		bool played = false;
-		for (Stack* s = child_; s; s = s->next_ ) {
+		for (ptr<Stack> s = child_; s; s = s->next_ ) {
 			if (!played && !s->ended_ && s->timeToNext() <= ttn) {
 				played = true;
 				//cout << "sub parse!! " << s->ittr_.raw() << endl;
@@ -288,7 +291,7 @@ void Sequencer::Stack::checkChildren()
 {
 	bool allEnded = true;
 	float largestTtn = 0.0;
-	for (Stack* s = child_; s; s = s->next_ ) {
+	for (ptr<Stack> s = child_; s; s = s->next_ ) {
 		allEnded &= s->ended_;
 		if (s->timeToNext_ > largestTtn)
 			largestTtn = s->timeToNext_;
@@ -296,7 +299,12 @@ void Sequencer::Stack::checkChildren()
 
 	if (allEnded) {
 		timeToNext_ += largestTtn;
-		child_ = nullptr; // <- leak!!
+		ptr<Stack> p = child_;
+		while (p) {
+			ptr<Stack> h = p->next_;
+			p = h;
+		}
+		child_ = nullptr;
 		init(true);
 	}
 }

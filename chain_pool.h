@@ -1,25 +1,38 @@
 #ifndef _CHAIN_POOL_H_
 #define _CHAIN_POOL_H_
+#include "refcnt.h"
 #include <iostream>
-#include <iomanip>
 #include <string.h>
 
-template<typename T, unsigned MAX_ENTRIES>
+template<typename T>
 class ChainPool {
 public:
 	struct F{F* next;};
-	ChainPool() : freePool_(nullptr) {
-		memset(mem_, 0, MAX_ENTRIES*sizeof(T));
+	ChainPool(unsigned maxEntries) : freePool_(nullptr), maxEntries_(maxEntries) {
+		mem_ = new unsigned char[maxEntries_*sizeof(T)];
+		memset(mem_, 0, maxEntries_*sizeof(T));
         static_assert(sizeof(T) >= sizeof(void*));
-		for (unsigned i = 0; i < MAX_ENTRIES-1; ++i) {
+		for (unsigned i = 0; i < maxEntries_-1; ++i) {
 			((F*)(((T*)mem_) + i))->next = (F*)(((T*)mem_) + i + 1);
 		}
-		((F*)(((T*)mem_) + MAX_ENTRIES - 1))->next = nullptr;
+		((F*)(((T*)mem_) + maxEntries_ - 1))->next = nullptr;
 		freePool_ = (F*)mem_;
+	}
+	~ChainPool()
+	{
+		F* f = freePool_;
+		unsigned num = 0;
+		while (f) {
+			++num;
+			f = f->next;
+		}
+		if (num != maxEntries_)
+			std::cout << "ChainPool leak: " << num << "/" << maxEntries_ << " free" << std::endl;
+		delete []mem_;
 	}
 	void dump()
 	{
-		for (unsigned i = 0; i < MAX_ENTRIES*sizeof(T); ++i) {
+		for (unsigned i = 0; i < maxEntries_*sizeof(T); ++i) {
 			if ((i%sizeof(T)) == 0)
 				std::cout << std::endl;
 			if ((i%8) == 0)
@@ -28,7 +41,7 @@ public:
 		}
 	}
 	template<typename ...Args>
-	T* mk(Args&&... args)
+	ptr<T> mk(Args&&... args)
 	{
 		F* f = freePool_;
 		if (!f) {
@@ -36,7 +49,8 @@ public:
 			return nullptr;
 		}
 		freePool_ = f->next;
-		T* t = new(f)T(args...);
+		ptr<T> t(new(f)T(args...));
+		t->chainPool_ = this;
 		return t;
 	}
 	void release(T* t)
@@ -47,9 +61,14 @@ public:
 		freePool_ = f;
 	}
 private:
-	unsigned char mem_[MAX_ENTRIES*sizeof(T)];
+	unsigned char* mem_;
+	unsigned maxEntries_;
 	F* freePool_;
-
 };
+
+template<typename C>
+void refcnt<C>::destroy() {
+	chainPool_->release((C*)this);
+}
 
 #endif

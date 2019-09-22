@@ -5,52 +5,64 @@
 
 using namespace std;
 
-Synthesizer::Synthesizer(int sampleRate) : sampleRate_(sampleRate), sample_nr(0)
+Synthesizer::Synthesizer(int sampleRate) : sampleRate_(sampleRate), sample_nr(0), notePool_(10), bufferPool_(10)
 {
-	hz_ = 440.0;
 	samples_ = 0;
+	noteNum_ = 0;
 }
 
 void Synthesizer::playNote(float duration, float velocity, float note, float volume, unsigned noteValueId, unsigned volumeValueId)
 {
 	cout << "======================== play note " << note << ", duration = " << duration << endl;
-	hz_ = pow(1.059463094, note)*65.40639133; // frequency of c0 is 65.40639133
-	notes_.push_back(Note(note, duration));
-	cout << hz_ << endl;
+	ptr<Note> newNote = notePool_.mk(note, duration, sample_nr, bufferPool_);
+	notes__[noteNum_++] = newNote;
+	noteNum_ &= 7;
 }
 
 void Synthesizer::generate(int16_t* begin, int16_t* end)
 {
 	memset(begin, 0, end-begin);
-	int16_t buff[8192];
-	for (Note& note : notes_) {
-		note.generate(buff, buff+(end-begin));
-		for(int16_t* p = begin; p != end; ++p) {
-			*p += buff[p-begin]/4;
+	int16_t* p = begin;
+	while (p < end) {
+		unsigned len = end-p;
+		if (len>256) len = 256;
+		for (ptr<Note> note : notes__) {
+			if (!note) continue;
+			ptr<BufferX<256>> buf;
+			buf = note->get(sample_nr, len);
+			for(unsigned i = 0; i < buf->size_; ++i) {
+				p[i] += buf->buff[i]/2;
+			}
 		}
+		sample_nr += len;
+		p += len;
 	}
 }
 
-Synthesizer::Note::Note(float note, float duration) : note_(note), duration_(duration)
+Synthesizer::Note::Note(float note, float duration, unsigned start_nr, ChainPool<BufferX<256>>& bufferPool) : note_(note), duration_(duration), start_nr_(start_nr), bufferPool_(bufferPool)
 {
-	sample_nr = 0;
 }
 
-void Synthesizer::Note::generate(int16_t* begin, int16_t* end)
+Synthesizer::Note::~Note()
 {
-	float hz_ = pow(1.059463094, note_)*65.40639133; // frequency of c0 is 65.40639133
+	cout << "note really terminated" << endl;
+}
+ptr<BufferX<256>> Synthesizer::Note::get(unsigned sample_nr, unsigned len)
+{
+	ptr<BufferX<256>> buff = bufferPool_.mk(len);
+	float hz = pow(1.059463094, note_)*65.40639133; // frequency of c0 is 65.40639133
 	float sampleRate_ = 44100;
-	for(int16_t* p = begin; p != end; ++p, ++sample_nr) {
-		double time = (double)sample_nr / (double)sampleRate_;
-		int AMPLITUDE = 3600-sample_nr/5;
+	for(unsigned i = 0; i < buff->size_; ++i) {
+		double time = (double)(sample_nr-start_nr_+i) / (double)sampleRate_;
+		int AMPLITUDE = 3600-(sample_nr-start_nr_+i)/5;
 		if (AMPLITUDE <0) AMPLITUDE = 0;
-		*p  = (int16_t)(AMPLITUDE * sin(2.0f * M_PI * hz_ * time*1)*1.00);
-		*p += (int16_t)(AMPLITUDE * sin(2.0f * M_PI * hz_ * time*2.01)*1.31/2);
-		*p += (int16_t)(AMPLITUDE * sin(2.0f * M_PI * hz_ * time*3.01)*2/3);
-		*p += (int16_t)(AMPLITUDE * sin(2.0f * M_PI * hz_ * time*4.01)*2.31/4);
-		*p += (int16_t)(AMPLITUDE * sin(2.0f * M_PI * hz_ * time*5.01)*0.31/5);
-		//*p += (int16_t)(AMPLITUDE * sin(2.0f * M_PI * (hz_+1.005) * time));
+		buff->buff[i]  = (int16_t)(AMPLITUDE * sin(2.0f * M_PI * hz * time*1)*1.00);
+		buff->buff[i] += (int16_t)(AMPLITUDE * sin(2.0f * M_PI * hz * time*2.01)*1.31/2);
+		buff->buff[i] += (int16_t)(AMPLITUDE * sin(2.0f * M_PI * hz * time*3.01)*2/3);
+		buff->buff[i] += (int16_t)(AMPLITUDE * sin(2.0f * M_PI * hz * time*4.01)*2.31/4);
+		buff->buff[i] += (int16_t)(AMPLITUDE * sin(2.0f * M_PI * hz * time*5.01)*0.31/5);
 	}
+	return buff;
 }
 
 // from seq, we get: volume(&), note(?), freq(??), velocity(^), duration($)

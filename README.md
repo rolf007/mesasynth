@@ -1,1 +1,1 @@
-# mesasynth
+# Minimalistic Embedded Sequenser And Synhesizer

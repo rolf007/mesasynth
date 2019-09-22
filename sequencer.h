@@ -1,6 +1,7 @@
 #ifndef _SEQUENCER_H_
 #define _SEQUENCER_H_
 
+#include "refcnt.h"
 #include "parsers.h"
 #include "value.h"
 #include "manager.h"
@@ -17,7 +18,7 @@ public:
 	bool ended() { return root_->ended_; }
 	float timeToNext() const { return root_->timeToNext(); }
 private:
-	struct Stack {
+	struct Stack : public refcnt<Stack> {
 		Stack(Ittr str, Sequencer&, int oldnote, Modifier legatoModifier, float legato, float volume, float duration, float velocity, float timeToNext);
 		Stack(const Stack& s);
 		void init(bool canDef);
@@ -38,13 +39,13 @@ private:
 		float velocity_;
 		float timeToNext_;
 		bool ended_;
-		Stack* next_;
-		Stack* child_;
+		ptr<Stack> next_;
+		ptr<Stack> child_;
 	};
-	ChainPool<Stack, 40> subParsers_;
+	ChainPool<Stack> subParsers_;
     SynthesizerIf& syn_;
 	Manager<Value, sizeof(Envelope)>& valueManager_;
-	Stack* root_;
+	ptr<Stack> root_;
 };
 
 #endif

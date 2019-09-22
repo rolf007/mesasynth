@@ -17,13 +17,13 @@ const char* test0 = "c2.e'g.c.g'e.c===";
 const char* fantasie = "%*1$/4g2$2c2egcgecegcgeCis{c2g2cecgc2g2cecg}@@Dis{d2a2cfcad2a2cfca}@@";
 const char* chord0 = "%*1$2cc#d(g,e)c#(g#,e#)d";
 const char* chord = "$1A{c(c,e,g)g(g,d,f,b'b#')c(c,e,g)g#'`a.33<'`a.33#'`a#'`b.33<'`c.67<'`}(c,e,g,c3)@@c0";
-const char* david = "$.7A{(c2,f2,g2)c0$0}@@@@B{(c2,e2,g2)c0$0}@@@@C{(c2,d2,g2)c0$0}@@@@BBBB@c0$1";
+const char* david = "$.7A{(c2,f2,g2)}@@@@B{(c2,e2,g2)}@@@@C{(c2,d2,g2)}@@@@BBBB";
 const char* scala = "$2cdefgabc";
 class Foo {
 public:
 	Foo(int sampleRate) : syn(sampleRate), seq(manager, syn), leftOver(0), scale(50000.0)
 	{
-		seq.addTrack(david);
+		seq.addTrack(chord);
 	}
 	Synthesizer syn;
 	Manager<Value, sizeof(Envelope)> manager;
@@ -52,7 +52,8 @@ void audio_callback(void* user_data, Uint8* raw_buffer, int bytes)
 	    foo->syn.generate(begin, end);
 	    begin = end;
 		if (!done) {
-			if (!foo->seq.parse(/*syn*/)) {
+			foo->seq.parse(/*syn*/);
+			if (foo->seq.ended()) {
 				done = true;
 			}
 		}
@@ -88,6 +89,7 @@ int main(int argc, char *argv[])
     SDL_PauseAudio(1); // stop playing sound
 
     SDL_CloseAudio();
+	cout << "DONE!" << endl;
 
     return 0;
 }

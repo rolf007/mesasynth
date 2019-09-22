@@ -51,7 +51,7 @@ TEST(Sequencer, basic)
 	EXPECT_FLOAT_EQ(29.0, syn.note_);
 
 	EXPECT_TRUE(sequencer.parse());
-	EXPECT_FLOAT_EQ(.500, sequencer.timeToNext());
+	EXPECT_FLOAT_EQ(1000, sequencer.timeToNext());
 	EXPECT_FLOAT_EQ(.200, syn.duration_);
 	EXPECT_FLOAT_EQ(31.0, syn.note_);
 	EXPECT_TRUE(sequencer.ended());
@@ -89,7 +89,7 @@ TEST(Sequencer, macro)
 	EXPECT_FLOAT_EQ(26.0, syn.note_);
 
 	EXPECT_TRUE(sequencer.parse());
-	EXPECT_FLOAT_EQ(.250, sequencer.timeToNext());
+	EXPECT_FLOAT_EQ(1000, sequencer.timeToNext());
 	EXPECT_FLOAT_EQ(.200, syn.duration_);
 	EXPECT_FLOAT_EQ(28.0, syn.note_);
 	EXPECT_TRUE(sequencer.ended());
@@ -116,7 +116,7 @@ TEST(Sequencer, lastHasDuration)
 
 	EXPECT_TRUE(sequencer.parse());
 	EXPECT_FLOAT_EQ(35.0, syn.note_); // 'b'
-	EXPECT_FLOAT_EQ(.250, sequencer.timeToNext());
+	EXPECT_FLOAT_EQ(1000, sequencer.timeToNext());
 	EXPECT_TRUE(sequencer.ended());
 }
 
@@ -152,7 +152,7 @@ TEST(Sequencer, paranthesis0)
 	cout << "6--------------------------------------------------------------" << endl;
 	EXPECT_TRUE(sequencer.parse());
 	EXPECT_FLOAT_EQ(29.0, syn.note_); // 'f'
-	EXPECT_FLOAT_EQ(.250, sequencer.timeToNext());
+	EXPECT_FLOAT_EQ(1000, sequencer.timeToNext());
 	cout << "===============================================================" << endl;
 	EXPECT_TRUE(sequencer.ended());
 	EXPECT_FALSE(sequencer.parse());
@@ -189,7 +189,7 @@ TEST(Sequencer, paranthesis1)
 
 	EXPECT_TRUE(sequencer.parse());
 	EXPECT_FLOAT_EQ(26.0, syn.note_); // 'd'
-	EXPECT_FLOAT_EQ(.250, sequencer.timeToNext());
+	EXPECT_FLOAT_EQ(1000, sequencer.timeToNext());
 
 	EXPECT_TRUE(sequencer.ended());
 	EXPECT_FALSE(sequencer.parse());
