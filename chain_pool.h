@@ -6,18 +6,48 @@
 
 template<typename T>
 class ChainPool {
+	static ChainPool<T>* inst;
 public:
-	struct F{F* next;};
-	ChainPool(unsigned maxEntries) : freePool_(nullptr), maxEntries_(maxEntries) {
-		mem_ = new unsigned char[maxEntries_*sizeof(T)];
-		memset(mem_, 0, maxEntries_*sizeof(T));
-        static_assert(sizeof(T) >= sizeof(void*));
-		for (unsigned i = 0; i < maxEntries_-1; ++i) {
-			((F*)(((T*)mem_) + i))->next = (F*)(((T*)mem_) + i + 1);
+	class Scope {
+		ChainPool<T> inst;
+	public:
+		Scope(unsigned maxEntries, unsigned maxSize = sizeof(T)) :
+			inst(maxEntries, maxSize)
+		{
+			if (ChainPool<T>::inst)
+				std::cout << "ERROR: " << typeid(ChainPool<T>).name() << " already constructed" << std::endl;
+			ChainPool<T>::inst = &inst;
 		}
-		((F*)(((T*)mem_) + maxEntries_ - 1))->next = nullptr;
+		Scope(const Scope&) = delete;
+		~Scope()
+		{
+			ChainPool<T>::inst = nullptr;
+		}
+	};
+	static ChainPool<T>& instance()
+	{
+		if (inst == nullptr)
+			std::cout << "ERROR: " << typeid(ChainPool<T>).name() << " not constructed" << std::endl;
+		return *inst;
+	}
+	struct F{F* next;};
+	friend class Scope;
+private:
+	ChainPool(unsigned maxEntries, unsigned maxSize = sizeof(T)) : freePool_(nullptr), maxEntries_(maxEntries) {
+		mem_ = new unsigned char[maxEntries_*maxSize];
+		std::cout << "allocating " << maxEntries_ << "*" << maxSize << " at " << (void*)mem_ << std::endl;
+		memset(mem_, 0, maxEntries_*maxSize);
+        if (maxSize < sizeof(void*))
+			std::cout << "ERROR: ChainPool entries not big enough to hold a pointer" << std::endl;
+		for (unsigned i = 0; i < maxEntries_-1; ++i) {
+			unsigned char** x = (unsigned char**)(mem_+i*maxSize);
+			*x = mem_+(i+1)*maxSize;
+		}
+		unsigned char** x = (unsigned char**)(mem_+(maxEntries-1)*maxSize);
+		*x = nullptr;
 		freePool_ = (F*)mem_;
 	}
+public:
 	~ChainPool()
 	{
 		F* f = freePool_;
@@ -45,12 +75,24 @@ public:
 	{
 		F* f = freePool_;
 		if (!f) {
-			std::cout << "ERROR chainPool out of memory" << std::endl;
+			std::cout << "ERROR mk() " << typeid(ChainPool<T>).name() << " out of memory" << std::endl;
 			return nullptr;
 		}
 		freePool_ = f->next;
 		ptr<T> t(new(f)T(args...));
-		t->chainPool_ = this;
+		return t;
+	}
+	template<typename T2, typename ...Args>
+	ptr<T2> mk2(Args&&... args)
+	{
+		F* f = freePool_;
+		std::cout << "f = " << f << std::endl;
+		if (!f) {
+			std::cout << "ERROR mk2 " << typeid(ChainPool<T>).name() << " out of memory" << std::endl;
+			return nullptr;
+		}
+		freePool_ = f->next;
+		ptr<T2> t(new(f)T2(args...));
 		return t;
 	}
 	void release(T* t)
@@ -66,9 +108,12 @@ private:
 	F* freePool_;
 };
 
+template<typename T>
+ChainPool<T>* ChainPool<T>::inst = nullptr;
+
 template<typename C>
 void refcnt<C>::destroy() {
-	chainPool_->release((C*)this);
+	ChainPool<C>::instance().release((C*)this);
 }
 
 #endif

@@ -1,7 +1,7 @@
 #ifndef _PARSERS_H_
 #define _PARSERS_H_
 
-#include "manager.h"
+#include "chain_pool.h"
 #include "value.h"
 
 class Value;
@@ -22,8 +22,9 @@ public:
 	static bool parseDuration(T& str, Modifier& modifier, float& value);
 	static bool parseNote(T& str, int oldNote, float& note);
 	static bool parseDefaultProperty(T& str, Property& property, Modifier& modifier, float& value);
-	static bool parseValue(Manager<Value, sizeof(Envelope)>& manager, T& str, unsigned& valueId);
-	static bool parseNoteProperties(Manager<Value, sizeof(Envelope)>&, T& str, Property& property, Modifier& modifier, unsigned& valueId, float& value);
+	static bool parseEnvelope(T& str, ptr<Value> valuePtr);
+	static bool parseValue(T& str, ptr<Value>& valuePtr);
+	static bool parseNoteProperties(T& str, Property& property, Modifier& modifier, ptr<Value>& valuePtr, float& value);
 };
 
 template<typename T>
@@ -232,16 +233,22 @@ bool Parsers<T>::parseDefaultProperty(T& str, Property& property, Modifier& modi
 }
 
 template<typename T>
-bool Parsers<T>::parseValue(Manager<Value, sizeof(Envelope)>& manager, T& str, unsigned& valueId)
+bool parseEnvelope(T& str, ptr<Value> valuePtr)
+{
+	return true;
+}
+
+template<typename T>
+bool Parsers<T>::parseValue(T& str, ptr<Value>& valuePtr)
 {
 	T tmp = str;
 	if (*tmp == '~') {
-		valueId = manager.mk<Oscillator>();
+		valuePtr = ChainPool<Value>::instance().mk2<Oscillator>();
 		++tmp;
 		str = tmp;
 		return true;
 	} else if (*tmp == ':') {
-		valueId = manager.mk<Envelope>();
+		valuePtr = ChainPool<Value>::instance().mk2<Envelope>();
 		++tmp;
 		str = tmp;
 		return true;
@@ -250,13 +257,13 @@ bool Parsers<T>::parseValue(Manager<Value, sizeof(Envelope)>& manager, T& str, u
 //	float value;
 //	if (!parseFloatOrFraction(tmp, value))
 //		return false;
-//	valueId = manager.mk<Const>(value);
+//	valueId = ChainPool<Value>::instance().mk<Const>(value);
 //	str = tmp;
 //	return true;
 }
 
 template<typename T>
-bool Parsers<T>::parseNoteProperties(Manager<Value, sizeof(Envelope)>& manager, T& str, Property& property, Modifier& modifier, unsigned& valueId, float& value)
+bool Parsers<T>::parseNoteProperties(T& str, Property& property, Modifier& modifier, ptr<Value>& valuePtr, float& value)
 {
 	T tmp = str;
 	if (*tmp == '%') {
@@ -271,7 +278,7 @@ bool Parsers<T>::parseNoteProperties(Manager<Value, sizeof(Envelope)>& manager, 
 	} else if (*tmp == '?') {
 		++tmp;
 		property = Parsers::Note;
-	} else if (parseValue(manager, tmp, valueId)) {
+	} else if (parseValue(tmp, valuePtr)) {
 		property = Parsers::Note;
 		modifier = Parsers::Add;
 		str = tmp;
@@ -282,12 +289,12 @@ bool Parsers<T>::parseNoteProperties(Manager<Value, sizeof(Envelope)>& manager, 
 		modifier = Parsers::Set;
 	if (parseFloatOrFraction(tmp, value)) {
 		str = tmp;
-		valueId = -1;
+		valuePtr = nullptr;
 		return true;
 	}
 	if (property == Parsers::Legato || property == Parsers::Velocity)
 		return false;
-	if (!parseValue(manager, tmp, valueId))
+	if (!parseValue(tmp, valuePtr))
 		return false;
 	str = tmp;
 	return true;

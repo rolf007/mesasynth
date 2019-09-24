@@ -42,13 +42,13 @@ class Properties {
 
 
 
-Sequencer::Sequencer(Manager<Value, sizeof(Envelope)>& valueManager, SynthesizerIf& syn) : subParsers_(40), syn_(syn), valueManager_(valueManager)
+Sequencer::Sequencer(SynthesizerIf& syn) : subParsers_(40, sizeof(Stack)), syn_(syn)
 {
 }
 
 void Sequencer::addTrack(Ittr str)
 {
-	root_ = subParsers_.mk(str, *this, 30, Mul, 0.8, 0.5, 0.25, 0.5, 0.0);
+	root_ = ChainPool<Stack>::instance().mk(str, *this, 30, Mul, 0.8, 0.5, 0.25, 0.5, 0.0);
 	root_->init(true);
 }
 
@@ -78,7 +78,7 @@ bool Sequencer::Stack::parseParanthesis(Ittr& ittr, float& paranTime)
 	Ittr tmp = ittr;
 	if (*tmp == '(') {
 		//cout << "parseParanthesis : " << ittr.raw() << endl;
-		child_ = seq_.subParsers_.mk(*this);
+		child_ = ChainPool<Stack>::instance().mk(*this);
 		child_->ittr_ = tmp;
 		++(child_->ittr_);
 		child_->init(true);
@@ -86,7 +86,7 @@ bool Sequencer::Stack::parseParanthesis(Ittr& ittr, float& paranTime)
 		unsigned depth = 0;
 		while (*tmp != 0) {
 			if (*tmp == ',' && depth == 0) {
-				ptr<Stack> nw = seq_.subParsers_.mk(*this);
+				ptr<Stack> nw = ChainPool<Stack>::instance().mk(*this);
 				nw->next_ = child_;
 				nw->ittr_ = tmp;
 				++(nw->ittr_);
@@ -249,16 +249,16 @@ bool Sequencer::Stack::parse()
 		duration = duration_;
 	float volume = volume_;
 	float velocity = velocity_;
-	unsigned valueId;
+	ptr<Value> valuePtr;
 	float value;
-	unsigned volumeValueId = -1;
-	unsigned noteValueId = -1;
+	ptr<Value> volumeValuePtr = nullptr;
+	ptr<Value> noteValuePtr = nullptr;
 	Property property;
-	while(parseNoteProperties(seq_.valueManager_, ittr_, property, modifier, valueId, value)) {
-		if (valueId == -1)
+	while(parseNoteProperties(ittr_, property, modifier, valuePtr, value)) {
+		if (!valuePtr)
 			cout << "found note property value: " << property << ", " << prnt(modifier) << ", " << value << endl;
 		else
-			cout << "found note property valueId: " << property << ", " << prnt(modifier) << ", " << valueId << endl;
+			cout << "found note property valuePtr: " << property << ", " << prnt(modifier) << ", " << valuePtr << endl;
 		if (property == Legato) {
 			legatoModifier_ = modifier;
 			legato_ = value;
@@ -266,21 +266,21 @@ bool Sequencer::Stack::parse()
 		else if (property == Velocity)
 			apply(modifier, value, velocity_, velocity);
 		else if (property == Volume)
-			if (valueId == -1)
+			if (!valuePtr)
 				apply(modifier, value, volume_, volume);
 			else
-				volumeValueId = valueId;
+				volumeValuePtr = valuePtr;
 		else if (property == Note)
-			if (valueId == -1)
+			if (!valuePtr)
 				apply(modifier, value, note, note);
 			else
-				noteValueId = valueId;
+				noteValuePtr = valuePtr;
 		else
 			cout << "unknown property in note section " << property << endl;
 	}
 	float noteLenght = duration;
 	apply(legatoModifier_, legato_, noteLenght, noteLenght);
-	seq_.syn_.playNote(noteLenght, velocity, note, volume, noteValueId, volumeValueId);
+	seq_.syn_.playNote(noteLenght, velocity, note, volume, noteValuePtr, volumeValuePtr);
 //---------------
 	timeToNext_ = duration;
 	init(parseSpace(ittr_));
@@ -299,11 +299,6 @@ void Sequencer::Stack::checkChildren()
 
 	if (allEnded) {
 		timeToNext_ += largestTtn;
-		ptr<Stack> p = child_;
-		while (p) {
-			ptr<Stack> h = p->next_;
-			p = h;
-		}
 		child_ = nullptr;
 		init(true);
 	}

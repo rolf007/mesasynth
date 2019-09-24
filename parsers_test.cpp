@@ -1,6 +1,5 @@
 #include "parsers.h"
 #include "value.h"
-#include "manager.h"
 #include "macro.h"
 #include <gtest/gtest.h>
 
@@ -118,31 +117,31 @@ void testParserDefaultPropertiesFail(const char* str)
 	EXPECT_EQ(str, tmp);
 }
 
-void testParserNoteProperties(Manager<Value, sizeof(Envelope)>& manager, const char* str, Parsers<const char*>::Property expProperty, Parsers<const char*>::Modifier expModifier, float expValue, char end=0)
+void testParserNoteProperties(const char* str, Parsers<const char*>::Property expProperty, Parsers<const char*>::Modifier expModifier, float expValue, char end=0)
 {
 	const char* tmp = str;
 	Parsers<const char*>::Property property;
 	Parsers<const char*>::Modifier modifier;
-	unsigned valueId;
+	ptr<Value> valuePtr;
 	float value;
-	EXPECT_TRUE(Parsers<const char*>::parseNoteProperties(manager, tmp, property, modifier, valueId, value));
+	EXPECT_TRUE(Parsers<const char*>::parseNoteProperties(tmp, property, modifier, valuePtr, value));
 	EXPECT_EQ(end, *tmp);
 	EXPECT_EQ(expProperty, property);
 	EXPECT_EQ(expModifier, modifier);
-	if (valueId == -1)
+	if (!valuePtr)
 		EXPECT_FLOAT_EQ(expValue, value);
 	else
-		EXPECT_FLOAT_EQ(expValue, manager.get(valueId)->get());
+		EXPECT_FLOAT_EQ(expValue, valuePtr->get(0,0)->buff[0]);
 }
 
-void testParserNotePropertiesFail(Manager<Value, sizeof(Envelope)>& manager, const char* str)
+void testParserNotePropertiesFail(const char* str)
 {
 	const char* tmp = str;
 	Parsers<const char*>::Property property;
 	Parsers<const char*>::Modifier modifier;
-	unsigned valueId;
+	ptr<Value> valuePtr;
 	float value;
-	EXPECT_FALSE(Parsers<const char*>::parseNoteProperties(manager, tmp, property, modifier, valueId, value));
+	EXPECT_FALSE(Parsers<const char*>::parseNoteProperties(tmp, property, modifier, valuePtr, value));
 	EXPECT_EQ(str, tmp);
 }
 
@@ -238,25 +237,34 @@ TEST(Parse, DefaultProperties)
 
 TEST(Parse, NoteProperties)
 {
+	ChainPool<Value>::Scope scopeValue(10, sizeof(Envelope));
+	ChainPool<Buffer<256>>::Scope scopeBuffer(10);
 	float osc = 91.0;
 	float env = 92.0;
-	Manager<Value, sizeof(Envelope)> manager;
-	CHECK(testParserNoteProperties(manager, "%.8", ParserEnums::Legato, ParserEnums::Set, .8));
-	CHECK(testParserNoteProperties(manager, "^*4/5", ParserEnums::Velocity, ParserEnums::Mul, .8));
-	CHECK(testParserNoteProperties(manager, "&+0.4/0.5", ParserEnums::Volume, ParserEnums::Add, .8));
-	CHECK(testParserNoteProperties(manager, "?0.5", ParserEnums::Note, ParserEnums::Set, .5));
-	CHECK(testParserNoteProperties(manager, "?*2/5", ParserEnums::Note, ParserEnums::Mul, .4));
-	CHECK(testParserNoteProperties(manager, "?+5.", ParserEnums::Note, ParserEnums::Add, 5.0));
-	CHECK(testParserNotePropertiesFail(manager, "%:5"));
-	CHECK(testParserNotePropertiesFail(manager, "^:5"));
-	CHECK(testParserNotePropertiesFail(manager, "%~5"));
-	CHECK(testParserNotePropertiesFail(manager, "^~5"));
-	CHECK(testParserNoteProperties(manager, "&:5", ParserEnums::Volume, ParserEnums::Set, env, '5'));
-	CHECK(testParserNoteProperties(manager, "?:5", ParserEnums::Note, ParserEnums::Set, env, '5'));
-	CHECK(testParserNoteProperties(manager, "&~5", ParserEnums::Volume, ParserEnums::Set, osc, '5'));
-	CHECK(testParserNoteProperties(manager, "?~5", ParserEnums::Note, ParserEnums::Set, osc, '5'));
-	CHECK(testParserNoteProperties(manager, ":5", ParserEnums::Note, ParserEnums::Add, env, '5'));
-	CHECK(testParserNoteProperties(manager, "~5", ParserEnums::Note, ParserEnums::Add, osc, '5'));
+	CHECK(testParserNoteProperties("%.8", ParserEnums::Legato, ParserEnums::Set, .8));
+	CHECK(testParserNoteProperties("^*4/5", ParserEnums::Velocity, ParserEnums::Mul, .8));
+	CHECK(testParserNoteProperties("&+0.4/0.5", ParserEnums::Volume, ParserEnums::Add, .8));
+	CHECK(testParserNoteProperties("?0.5", ParserEnums::Note, ParserEnums::Set, .5));
+	CHECK(testParserNoteProperties("?*2/5", ParserEnums::Note, ParserEnums::Mul, .4));
+	CHECK(testParserNoteProperties("?+5.", ParserEnums::Note, ParserEnums::Add, 5.0));
+	CHECK(testParserNotePropertiesFail("%:5"));
+	CHECK(testParserNotePropertiesFail("^:5"));
+	CHECK(testParserNotePropertiesFail("%~5"));
+	CHECK(testParserNotePropertiesFail("^~5"));
+	CHECK(testParserNoteProperties("&:5", ParserEnums::Volume, ParserEnums::Set, env, '5'));
+	CHECK(testParserNoteProperties("?:5", ParserEnums::Note, ParserEnums::Set, env, '5'));
+	CHECK(testParserNoteProperties("&+:5", ParserEnums::Volume, ParserEnums::Add, env, '5'));
+	CHECK(testParserNoteProperties("?+:5", ParserEnums::Note, ParserEnums::Add, env, '5'));
+	CHECK(testParserNoteProperties("&*:5", ParserEnums::Volume, ParserEnums::Mul, env, '5'));
+	CHECK(testParserNoteProperties("?*:5", ParserEnums::Note, ParserEnums::Mul, env, '5'));
+	CHECK(testParserNoteProperties("&~5", ParserEnums::Volume, ParserEnums::Set, osc, '5'));
+	CHECK(testParserNoteProperties("?~5", ParserEnums::Note, ParserEnums::Set, osc, '5'));
+	CHECK(testParserNoteProperties("&+~5", ParserEnums::Volume, ParserEnums::Add, osc, '5'));
+	CHECK(testParserNoteProperties("?+~5", ParserEnums::Note, ParserEnums::Add, osc, '5'));
+	CHECK(testParserNoteProperties("&*~5", ParserEnums::Volume, ParserEnums::Mul, osc, '5'));
+	CHECK(testParserNoteProperties("?*~5", ParserEnums::Note, ParserEnums::Mul, osc, '5'));
+	CHECK(testParserNoteProperties(":5", ParserEnums::Note, ParserEnums::Add, env, '5'));
+	CHECK(testParserNoteProperties("~5", ParserEnums::Note, ParserEnums::Add, osc, '5'));
 }
 
 TEST(Parse, WithMacro)
@@ -265,4 +273,13 @@ TEST(Parse, WithMacro)
 	Ittr ittr("A{#}B{a}BA");
 	EXPECT_TRUE(Parsers<Ittr>::parseNote(ittr, 48, note));
 	EXPECT_FLOAT_EQ(46, note);
+}
+
+TEST(Parse, Envelope)
+{
+	ChainPool<Value>::Scope scopeValue(10, sizeof(Envelope));
+	ChainPool<Buffer<256>>::Scope scopeBuffer(10);
+	ptr<Envelope> env = ChainPool<Value>::instance().mk2<Envelope>();
+	env->addSegment(0.5, 0.7);
+	//CHECK(testParserEnvelope(manager, bufferPool, ":5", ParserEnums::Note, ParserEnums::Add, env, '5'));
 }

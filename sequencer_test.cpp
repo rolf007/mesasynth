@@ -8,8 +8,8 @@ using namespace std;
 class TestSynth : public SynthesizerIf
 {
 public:
-	TestSynth(Manager<Value, sizeof(Envelope)>& valueManager) : valueManager_(valueManager) {}
-    virtual void playNote(float duration, float velocity, float note, float volume, unsigned noteValueId, unsigned volumeValueId)
+	TestSynth()  {}
+    void playNote(float duration, float velocity, float note, float volume, ptr<Value> noteValuePtr, ptr<Value> volumeValuePtr) override
 	{
 		duration_ = duration;
 		velocity_ = velocity;
@@ -17,7 +17,6 @@ public:
 		volume_ = volume;
 	}
 	void generate(int16_t* begin, int16_t* end) override {}
-	Manager<Value, sizeof(Envelope)>& valueManager_;
 	float duration_;
 	float velocity_;
 	float volume_;
@@ -26,9 +25,10 @@ public:
 
 TEST(Sequencer, basic)
 {
-	Manager<Value, sizeof(Envelope)> manager;
-	TestSynth syn(manager);
-	Sequencer sequencer(manager, syn);
+	ChainPool<Value>::Scope manager(10, sizeof(Envelope));
+	ChainPool<Buffer<256>>::Scope bufferPool(10);
+	TestSynth syn;
+	Sequencer sequencer(syn);
 	sequencer.addTrack("/4%*.8cde=f'_'g_");
 	EXPECT_TRUE(sequencer.parse());
 	EXPECT_FLOAT_EQ(.250, sequencer.timeToNext());
@@ -59,9 +59,10 @@ TEST(Sequencer, basic)
 
 TEST(Sequencer, macro)
 {
-	Manager<Value, sizeof(Envelope)> manager;
-	TestSynth syn(manager);
-	Sequencer sequencer(manager, syn);
+	ChainPool<Value>::Scope manager(10, sizeof(Envelope));
+	ChainPool<Buffer<256>>::Scope bufferPool(10);
+	TestSynth syn;
+	Sequencer sequencer(syn);
 	sequencer.addTrack("/4Ax{cde}@@");
 	EXPECT_TRUE(sequencer.parse());
 	EXPECT_FLOAT_EQ(.250, sequencer.timeToNext());
@@ -97,9 +98,10 @@ TEST(Sequencer, macro)
 
 TEST(Sequencer, lastHasDuration)
 {
-	Manager<Value, sizeof(Envelope)> manager;
-	TestSynth syn(manager);
-	Sequencer sequencer(manager, syn);
+	ChainPool<Value>::Scope manager(10, sizeof(Envelope));
+	ChainPool<Buffer<256>>::Scope bufferPool(10);
+	TestSynth syn;
+	Sequencer sequencer(syn);
 	sequencer.addTrack("/2A{a''b'}@@");
 
 	EXPECT_TRUE(sequencer.parse());
@@ -123,9 +125,10 @@ TEST(Sequencer, lastHasDuration)
 TEST(Sequencer, paranthesis0)
 {
 	cout << "===============================================================" << endl;
-	Manager<Value, sizeof(Envelope)> manager;
-	TestSynth syn(manager);
-	Sequencer sequencer(manager, syn);
+	ChainPool<Value>::Scope manager(10, sizeof(Envelope));
+	ChainPool<Buffer<256>>::Scope bufferPool(10);
+	TestSynth syn;
+	Sequencer sequencer(syn);
 	sequencer.addTrack("/4a2(_'b,cd,e)f");
 	cout << "1--------------------------------------------------------------" << endl;
 	EXPECT_TRUE(sequencer.parse());
@@ -162,9 +165,10 @@ TEST(Sequencer, paranthesis0)
 TEST(Sequencer, paranthesis1)
 {
 	cout << "===============================================================" << endl;
-	Manager<Value, sizeof(Envelope)> manager;
-	TestSynth syn(manager);
-	Sequencer sequencer(manager, syn);
+	ChainPool<Value>::Scope manager(10, sizeof(Envelope));
+	ChainPool<Buffer<256>>::Scope bufferPool(10);
+	TestSynth syn;
+	Sequencer sequencer(syn);
 	sequencer.addTrack("/4(a,b,c)(d,e,f)");
 	cout << "1--------------------------------------------------------------" << endl;
 	EXPECT_TRUE(sequencer.parse());

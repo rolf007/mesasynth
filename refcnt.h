@@ -25,23 +25,22 @@ template<typename C>
 class refcnt : public refcnt_base {
 public:
 	void destroy();
-	ChainPool<C>* chainPool_;
 };
 
 template<class C>
 class ptr {
 	C* p;
 	void check_null() const { if (!p) null_ptr_error(typeid(p).name()); }
-	void release(refcnt<C>* p) {
+	void release(C* p) {
 		if (p) {
-			if (p->refcnt<C>::cnt == 1)
+			if (p->C::cnt == 1)
 				p->destroy();
 			else
-				--(p->refcnt<C>::cnt);
+				--(p->C::cnt);
 		}
 	}
 
-	void inc(refcnt<C>* p) { if (p) p->refcnt<C>::cnt++; }
+	void inc(C* p) { if (p) p->C::cnt++; }
 public:
 	ptr(C* p = 0) : p(p) { inc(p); }
 	ptr(const ptr& p2) : p(p2.p) { inc(p); }

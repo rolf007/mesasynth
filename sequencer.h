@@ -4,7 +4,6 @@
 #include "refcnt.h"
 #include "parsers.h"
 #include "value.h"
-#include "manager.h"
 #include "chain_pool.h"
 #include "macro.h"
 
@@ -12,7 +11,7 @@ class SynthesizerIf;
 
 class Sequencer : public Parsers<Ittr> {
 public:
-    Sequencer(Manager<Value, sizeof(Envelope)>& manager, SynthesizerIf& syn);
+    Sequencer(SynthesizerIf& syn);
 	void addTrack(Ittr str);
     bool parse();
 	bool ended() { return root_->ended_; }
@@ -42,9 +41,8 @@ private:
 		ptr<Stack> next_;
 		ptr<Stack> child_;
 	};
-	ChainPool<Stack> subParsers_;
+	ChainPool<Stack>::Scope subParsers_;
     SynthesizerIf& syn_;
-	Manager<Value, sizeof(Envelope)>& valueManager_;
 	ptr<Stack> root_;
 };
 

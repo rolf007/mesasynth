@@ -5,18 +5,18 @@
 
 using namespace std;
 
-Synthesizer::Synthesizer(int sampleRate) : sampleRate_(sampleRate), sample_nr(0), notePool_(10), bufferPool_(10)
+Synthesizer::Synthesizer(int sampleRate) : sampleRate_(sampleRate), sample_nr(0), notePool_(10)
 {
 	samples_ = 0;
 	noteNum_ = 0;
 }
 
-void Synthesizer::playNote(float duration, float velocity, float note, float volume, unsigned noteValueId, unsigned volumeValueId)
+void Synthesizer::playNote(float duration, float velocity, float note, float volume, ptr<Value> noteValuePtr, ptr<Value> volumeValuePtr)
 {
 	cout << "======================== play note " << note << ", duration = " << duration << endl;
-	ptr<Note> newNote = notePool_.mk(note, duration, sample_nr, bufferPool_);
+	ptr<Note> newNote = ChainPool<Note>::instance().mk(note, duration, sample_nr);
 	notes__[noteNum_++] = newNote;
-	noteNum_ &= 7;
+	noteNum_ %= 8;
 }
 
 void Synthesizer::generate(int16_t* begin, int16_t* end)
@@ -28,7 +28,7 @@ void Synthesizer::generate(int16_t* begin, int16_t* end)
 		if (len>256) len = 256;
 		for (ptr<Note> note : notes__) {
 			if (!note) continue;
-			ptr<BufferX<256>> buf;
+			ptr<Buffer<256>> buf;
 			buf = note->get(sample_nr, len);
 			for(unsigned i = 0; i < buf->size_; ++i) {
 				p[i] += buf->buff[i]/2;
@@ -39,7 +39,7 @@ void Synthesizer::generate(int16_t* begin, int16_t* end)
 	}
 }
 
-Synthesizer::Note::Note(float note, float duration, unsigned start_nr, ChainPool<BufferX<256>>& bufferPool) : note_(note), duration_(duration), start_nr_(start_nr), bufferPool_(bufferPool)
+Synthesizer::Note::Note(float note, float duration, unsigned start_nr) : note_(note), duration_(duration), start_nr_(start_nr)
 {
 }
 
@@ -47,9 +47,9 @@ Synthesizer::Note::~Note()
 {
 	cout << "note really terminated" << endl;
 }
-ptr<BufferX<256>> Synthesizer::Note::get(unsigned sample_nr, unsigned len)
+ptr<Buffer<256>> Synthesizer::Note::get(unsigned sample_nr, unsigned len)
 {
-	ptr<BufferX<256>> buff = bufferPool_.mk(len);
+	ptr<Buffer<256>> buff = ChainPool<Buffer<256>>::instance().mk(len);
 	float hz = pow(1.059463094, note_)*65.40639133; // frequency of c0 is 65.40639133
 	float sampleRate_ = 44100;
 	for(unsigned i = 0; i < buff->size_; ++i) {
