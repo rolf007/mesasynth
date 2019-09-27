@@ -11,6 +11,7 @@ public:
 		if (size > 256)
 			size_ = 256;
 	}
+	unsigned size() const { return size_; }
 	unsigned size_;
 	float buff[SIZE];
 };

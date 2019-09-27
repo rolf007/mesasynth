@@ -10,29 +10,36 @@
 class SynthesizerIf {
 public:
 	virtual ~SynthesizerIf() = default;
-    virtual void playNote(float duration, float velocity, float note, float volume, ptr<Value> noteValuePtr, ptr<Value> volumeValuePtr) = 0;
-	virtual void generate(int16_t* begin, int16_t* end) = 0;
+    virtual void playNote(unsigned duration, float velocity, float note, float volume, ptr<Value> noteValuePtr, ptr<Value> volumeValuePtr) = 0;
+};
+
+class Piano : public Value {
+public:
+	Piano(){}
+	ptr<Buffer<256>> get(unsigned sampleNr, unsigned len, const Ctx& ctx) override;
 };
 
 class Synthesizer : public SynthesizerIf {
 public:
-	class Note : public refcnt<Note> {
+	class Note : public refcnt<Note>, public Ctx {
 	public:
-		Note(float note, float duration, unsigned start_nr);
+		Note(float note, unsigned duration, unsigned start_nr, ptr<Value> instrument);
 		virtual ~Note();
 		ptr<Buffer<256>> get(unsigned sample_nr, unsigned len);
 	private:
+		ptr<Value> instrument_;
 		float note_;
-		float duration_;
+		unsigned duration_;
 		unsigned start_nr_;
+		virtual float note() const { return note_; }
+		virtual float sampleRate() const override { return 44100; }
 	};
-	Synthesizer(int sampleRate);
-    void playNote(float duration, float velocity, float note, float volume, ptr<Value> noteValuePtr, ptr<Value> volumeValuePtr) override;
-	void generate(int16_t* begin, int16_t* end) override;
+	ptr<Value> instrument0_;
+	Synthesizer();
+    void playNote(unsigned duration, float velocity, float note, float volume, ptr<Value> noteValuePtr, ptr<Value> volumeValuePtr) override;
+	void generate(int16_t* begin, int16_t* end);
 private:
-	int sampleRate_;
 	int sample_nr;
-	unsigned samples_;
 	ChainPool<Note>::Scope notePool_;
 	ptr<Note> notes__[8];
 	unsigned noteNum_;

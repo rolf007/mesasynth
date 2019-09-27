@@ -243,7 +243,7 @@ bool Parsers<T>::parseValue(T& str, ptr<Value>& valuePtr)
 {
 	T tmp = str;
 	if (*tmp == '~') {
-		valuePtr = ChainPool<Value>::instance().mk2<Oscillator>();
+		valuePtr = ChainPool<Value>::instance().mk2<Oscillator>(440.0, 0.5);
 		++tmp;
 		str = tmp;
 		return true;

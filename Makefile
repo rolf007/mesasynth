@@ -7,6 +7,7 @@ SOURCES += parsers.cpp
 SOURCES += sequencer.cpp
 SOURCES += synthesizer.cpp
 SOURCES += refcnt.cpp
+SOURCES += value.cpp
 
 macro.o: macro.cpp macro.h
 	g++ -c $< -o $@
@@ -23,6 +24,9 @@ sequencer.o: sequencer.cpp sequencer.h parsers.h sequencer.h synthesizer.h value
 synthesizer.o: synthesizer.cpp synthesizer.h
 	g++ -c $< -o $@
 
+value.o: value.cpp value.h
+	g++ -c $< -o $@
+
 OBJS = $(SOURCES:.cpp=.o)
 
 HEADERS += chain_pool.h
@@ -36,6 +40,7 @@ TEST_SOURCES += chain_pool_test.cpp
 TEST_SOURCES += macro_test.cpp
 TEST_SOURCES += parsers_test.cpp
 TEST_SOURCES += sequencer_test.cpp
+TEST_SOURCES += value_test.cpp
 
 chain_pool_test.o: chain_pool_test.cpp chain_pool.h
 	g++ -c $< -o $@
@@ -47,6 +52,9 @@ parsers_test.o: parsers_test.cpp parsers.h value.h macro.h
 	g++ -c $< -o $@
 
 sequencer_test.o: sequencer_test.cpp synthesizer.h sequencer.h parsers.h value.h chain_pool.h macro.h
+	g++ -c $< -o $@
+
+value_test.o: value_test.cpp value.h
 	g++ -c $< -o $@
 
 TEST_OBJS = $(TEST_SOURCES:.cpp=.o)

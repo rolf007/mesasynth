@@ -42,7 +42,7 @@ class Properties {
 
 
 
-Sequencer::Sequencer(SynthesizerIf& syn) : subParsers_(40, sizeof(Stack)), syn_(syn)
+Sequencer::Sequencer(SynthesizerIf& syn, float bpm4, float sampleRate) : subParsers_(40, sizeof(Stack)), syn_(syn), bpm4_(bpm4), sampleRate_(sampleRate)
 {
 }
 
@@ -278,9 +278,9 @@ bool Sequencer::Stack::parse()
 		else
 			cout << "unknown property in note section " << property << endl;
 	}
-	float noteLenght = duration;
-	apply(legatoModifier_, legato_, noteLenght, noteLenght);
-	seq_.syn_.playNote(noteLenght, velocity, note, volume, noteValuePtr, volumeValuePtr);
+	float noteLength = duration;
+	apply(legatoModifier_, legato_, noteLength, noteLength);
+	seq_.syn_.playNote(seq_.noteLengthToSamples(noteLength), velocity, note, volume, noteValuePtr, volumeValuePtr);
 //---------------
 	timeToNext_ = duration;
 	init(parseSpace(ittr_));

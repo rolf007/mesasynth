@@ -11,12 +11,15 @@ class SynthesizerIf;
 
 class Sequencer : public Parsers<Ittr> {
 public:
-    Sequencer(SynthesizerIf& syn);
+    Sequencer(SynthesizerIf& syn, float bpm4, float sampleRate);
 	void addTrack(Ittr str);
     bool parse();
 	bool ended() { return root_->ended_; }
-	float timeToNext() const { return root_->timeToNext(); }
+	unsigned timeToNext() const { return noteLengthToSamples(root_->timeToNext()); }
 private:
+	unsigned noteLengthToSamples(float noteLength) const {
+		return 4*60*sampleRate_*noteLength/bpm4_;
+	}
 	struct Stack : public refcnt<Stack> {
 		Stack(Ittr str, Sequencer&, int oldnote, Modifier legatoModifier, float legato, float volume, float duration, float velocity, float timeToNext);
 		Stack(const Stack& s);
@@ -43,6 +46,8 @@ private:
 	};
 	ChainPool<Stack>::Scope subParsers_;
     SynthesizerIf& syn_;
+	float bpm4_;
+	float sampleRate_;
 	ptr<Stack> root_;
 };
 

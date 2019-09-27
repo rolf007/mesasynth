@@ -16,12 +16,12 @@ const char base = "####/8(g2,g1)/=2(c2,c1)g2cecgcgecegCis{c2gcecgcgcecg}@@Dis7{d
 const char* test0 = "c2.e'g.c.g'e.c===";
 const char* fantasie = "%*1$/4g2$2c2egcgecegcgeCis{c2g2cecgc2g2cecg}@@Dis{d2a2cfcad2a2cfca}@@";
 const char* chord0 = "%*1$2cc#d(g,e)c#(g#,e#)d";
-const char* chord = "$1A{c(c,e,g)g(g,d,f,b'b#')c(c,e,g)g#'`a.33<'`a.33#'`a#'`b.33<'`c.67<'`}(c,e,g,c3)@@c0";
+const char* chord = "$.5A{c(c,e,g)g(g,d,f,b'b#')c(c,e,g)g#'`a.33<'`a.33#'`a#'`b.33<'`c.67<'`}(c,e,g,c3)@@c0";
 const char* david = "$.7A{(c2,f2,g2)}@@@@B{(c2,e2,g2)}@@@@C{(c2,d2,g2)}@@@@BBBB";
 const char* scala = "$2cdefgabc";
 class Foo {
 public:
-	Foo(int sampleRate) : manager(10, sizeof(Envelope)), bufferPool(10), syn(sampleRate), seq(syn), leftOver(0), scale(50000.0)
+	Foo(int sampleRate) : manager(10, sizeof(Envelope)), bufferPool(10), syn(), seq(syn, 120.0, sampleRate), leftOver(0)
 	{
 		seq.addTrack(chord);
 	}
@@ -31,7 +31,6 @@ public:
 	Synthesizer syn;
 	Sequencer seq;
 	unsigned leftOver;
-	float scale;
 };
 
 void audio_callback(void* user_data, Uint8* raw_buffer, int bytes)
@@ -45,7 +44,7 @@ void audio_callback(void* user_data, Uint8* raw_buffer, int bytes)
 		if (foo->leftOver)
 			end += foo->leftOver;
 		else
-	    	end += (int)(foo->seq.timeToNext()*foo->scale);
+	    	end += foo->seq.timeToNext();
 	    if (end >= buffer+length) {
 	        foo->syn.generate(begin, buffer+length);
 	        foo->leftOver = end - (buffer+length);
@@ -81,6 +80,7 @@ int main(int argc, char *argv[])
     SDL_AudioSpec have;
     if(SDL_OpenAudio(&want, &have) != 0) {printf("Failed to open audio: %s\n", SDL_GetError());}
     if(want.format != have.format) {printf("Failed to get the desired AudioSpec\n");}
+	cout << "Actual FREQ:" << have.freq << endl;
 
     SDL_PauseAudio(0); // start playing sound
 	while (!done) {

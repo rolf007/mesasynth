@@ -3,24 +3,34 @@
 
 #include "refcnt.h"
 #include "buffer.h"
+#include "chain_pool.h"
+
+class Ctx {
+public:
+	virtual float note() const = 0;
+	virtual float sampleRate() const = 0;
+};
 
 class Value : public refcnt<Value> {
 public:
 	Value() {}
 	~Value() = default;
-	virtual ptr<Buffer<256>> get(unsigned sampleNr, unsigned len) = 0;
+	virtual ptr<Buffer<256>> get(unsigned sampleNr, unsigned len, const Ctx& ctx) = 0;
 };
 
 class Oscillator : public Value {
 public:
-	Oscillator() {}
-	virtual ptr<Buffer<256>> get(unsigned sampleNr, unsigned len) override { ptr<Buffer<256>> buff = ChainPool<Buffer<256>>::instance().mk(len); buff->buff[0] = 91.0; return buff; }
+	Oscillator(float freq, float amp);
+	ptr<Buffer<256>> get(unsigned sampleNr, unsigned len, const Ctx& ctx) override;
+private:
+	float freq_;
+	float amp_;
 };
 
 class Envelope : public Value {
 public:
 	Envelope() {}
-	virtual ptr<Buffer<256>> get(unsigned sampleNr, unsigned len) override { ptr<Buffer<256>> buff = ChainPool<Buffer<256>>::instance().mk(len); buff->buff[0] = 92.0; return buff; }
+	ptr<Buffer<256>> get(unsigned sampleNr, unsigned len, const Ctx& ctx) override;
 	void addSegment(float duration, float value) {}
 	unsigned a,b;
 };
@@ -28,7 +38,7 @@ public:
 class Const : public Value {
 public:
 	Const(float value) : value_(value) {}
-	virtual ptr<Buffer<256>> get(unsigned sampleNr, unsigned len) override { ptr<Buffer<256>> buff = ChainPool<Buffer<256>>::instance().mk(len); buff->buff[0] = value_; return buff; }
+	ptr<Buffer<256>> get(unsigned sampleNr, unsigned len, const Ctx& ctx) override;
 private:
 	float value_;
 };
