@@ -6,6 +6,7 @@
 template<unsigned SIZE>
 class Buffer : public refcnt<Buffer<SIZE>> {
 public:
+	static const unsigned MaxSize = sizeof(Buffer);
 	Buffer(unsigned size) : size_(size)
 	{
 		if (size > 256)

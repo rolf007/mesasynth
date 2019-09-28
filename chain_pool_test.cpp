@@ -5,11 +5,13 @@ using namespace std;
 namespace {
 class Element : public refcnt<Element> {
 public:
+	static const unsigned MaxSize;
 	Element(unsigned a, unsigned b) :a(a), b(b) {}
 	long long a,b;
 	char c;
 };
 
+const unsigned Element::MaxSize = sizeof(Element);
 
 TEST(ChainPool, basic)
 {
@@ -50,6 +52,7 @@ TEST(ChainPool, mixed)
 
 class Base : public refcnt<Base> {
 public:
+	static const unsigned MaxSize;
 	static unsigned deletes;
     virtual ~Base() { ++deletes; }
     virtual unsigned foo() = 0;
@@ -75,6 +78,8 @@ public:
 	unsigned i;
 };
 
+const unsigned Base::MaxSize = sizeof(BigChild);
+
 unsigned Base::deletes = 0;
 unsigned SmallChild::deletes = 0;
 unsigned BigChild::deletes = 0;
@@ -82,7 +87,7 @@ unsigned BigChild::deletes = 0;
 
 TEST(ChainPool, polymorphism)
 {
-	ChainPool<Base>::Scope scope(10, sizeof(BigChild));
+	ChainPool<Base>::Scope scope(10);
 	Base::deletes = 0;
 	SmallChild::deletes = 0;
 	BigChild::deletes = 0;

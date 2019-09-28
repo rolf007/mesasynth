@@ -21,9 +21,9 @@ const char* david = "$.7A{(c2,f2,g2)}@@@@B{(c2,e2,g2)}@@@@C{(c2,d2,g2)}@@@@BBBB"
 const char* scala = "$2cdefgabc";
 class Foo {
 public:
-	Foo(int sampleRate) : manager(10, sizeof(Envelope)), bufferPool(10), syn(), seq(syn, 120.0, sampleRate), leftOver(0)
+	Foo(int sampleRate) : manager(60), bufferPool(10), syn(), seq(syn, 120.0, sampleRate), leftOver(0)
 	{
-		seq.addTrack(chord);
+		seq.addTrack(scala);
 	}
 	Foo(const Foo&) = delete;
 	ChainPool<Value>::Scope manager;

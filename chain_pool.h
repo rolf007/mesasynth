@@ -11,8 +11,8 @@ public:
 	class Scope {
 		ChainPool<T> inst;
 	public:
-		Scope(unsigned maxEntries, unsigned maxSize = sizeof(T)) :
-			inst(maxEntries, maxSize)
+		Scope(unsigned maxEntries) :
+			inst(maxEntries)
 		{
 			if (ChainPool<T>::inst)
 				std::cout << "ERROR: " << typeid(ChainPool<T>).name() << " already constructed" << std::endl;
@@ -26,24 +26,25 @@ public:
 	};
 	static ChainPool<T>& instance()
 	{
-		if (inst == nullptr)
+		if (inst == nullptr) {
 			std::cout << "ERROR: " << typeid(ChainPool<T>).name() << " not constructed" << std::endl;
+			exit(-1);
+		}
 		return *inst;
 	}
 	struct F{F* next;};
 	friend class Scope;
 private:
-	ChainPool(unsigned maxEntries, unsigned maxSize = sizeof(T)) : freePool_(nullptr), maxEntries_(maxEntries) {
-		mem_ = new unsigned char[maxEntries_*maxSize];
-		std::cout << "allocating " << maxEntries_ << "*" << maxSize << " at " << (void*)mem_ << std::endl;
-		memset(mem_, 0, maxEntries_*maxSize);
-        if (maxSize < sizeof(void*))
+	ChainPool(unsigned maxEntries) : freePool_(nullptr), maxEntries_(maxEntries), maxSize_(T::MaxSize) {
+		mem_ = new unsigned char[maxEntries_*maxSize_];
+		memset(mem_, 0, maxEntries_*maxSize_);
+        if (maxSize_ < sizeof(void*))
 			std::cout << "ERROR: ChainPool entries not big enough to hold a pointer" << std::endl;
 		for (unsigned i = 0; i < maxEntries_-1; ++i) {
-			unsigned char** x = (unsigned char**)(mem_+i*maxSize);
-			*x = mem_+(i+1)*maxSize;
+			unsigned char** x = (unsigned char**)(mem_+i*maxSize_);
+			*x = mem_+(i+1)*maxSize_;
 		}
-		unsigned char** x = (unsigned char**)(mem_+(maxEntries-1)*maxSize);
+		unsigned char** x = (unsigned char**)(mem_+(maxEntries-1)*maxSize_);
 		*x = nullptr;
 		freePool_ = (F*)mem_;
 	}
@@ -57,7 +58,7 @@ public:
 			f = f->next;
 		}
 		if (num != maxEntries_)
-			std::cout << "ChainPool leak: " << num << "/" << maxEntries_ << " free" << std::endl;
+			std::cout << "ERROR: ChainPool leak: " << num << "/" << maxEntries_ << " free" << std::endl;
 		delete []mem_;
 	}
 	void dump()
@@ -86,10 +87,14 @@ public:
 	ptr<T2> mk2(Args&&... args)
 	{
 		F* f = freePool_;
-		std::cout << "f = " << f << std::endl;
 		if (!f) {
 			std::cout << "ERROR mk2 " << typeid(ChainPool<T>).name() << " out of memory" << std::endl;
+			exit(-1);
 			return nullptr;
+		}
+		if (sizeof(T2) > maxSize_) {
+			std::cout << "ERROR mk2 " << typeid(ChainPool<T>).name() << " (" << sizeof(T2) << ") larger than maxSize (" << maxSize_ << ")" << std::endl;
+			exit(-1);
 		}
 		freePool_ = f->next;
 		ptr<T2> t(new(f)T2(args...));
@@ -105,6 +110,7 @@ public:
 private:
 	unsigned char* mem_;
 	unsigned maxEntries_;
+	unsigned maxSize_;
 	F* freePool_;
 };
 

@@ -1,4 +1,5 @@
 #include "parsers.h"
+#include "buffer.h"
 #include "value.h"
 #include "macro.h"
 #include <gtest/gtest.h>
@@ -119,8 +120,11 @@ void testParserDefaultPropertiesFail(const char* str)
 }
 
 class TestCtx : public Ctx {
-	float note() const override { return 0.0; }
-	float sampleRate() const override { return 0.0; }
+	ptr<Value> note() const override { return ChainPool<Value>::instance().mk2<Const>(0.0); }
+	ptr<Value> volume() const override { return ChainPool<Value>::instance().mk2<Const>(0.0); }
+	float sampleRate() const override { return 1.0; }
+	float& sum(Value*) override { return sum_; }
+	float sum_;
 };
 
 void testParserNoteProperties(const char* str, Parsers<const char*>::Property expProperty, Parsers<const char*>::Modifier expModifier, float expValue, char end=0)
@@ -138,7 +142,7 @@ void testParserNoteProperties(const char* str, Parsers<const char*>::Property ex
 	if (!valuePtr)
 		EXPECT_FLOAT_EQ(expValue, value);
 	else
-		EXPECT_FLOAT_EQ(expValue, valuePtr->get(0,0,ctx)->buff[0]);
+		EXPECT_FLOAT_EQ(expValue, valuePtr->get(0,1,ctx)->buff[0]);
 }
 
 void testParserNotePropertiesFail(const char* str)
@@ -244,9 +248,9 @@ TEST(Parse, DefaultProperties)
 
 TEST(Parse, NoteProperties)
 {
-	ChainPool<Value>::Scope scopeValue(10, sizeof(Envelope));
+	ChainPool<Value>::Scope scopeValue(10);
 	ChainPool<Buffer<256>>::Scope scopeBuffer(10);
-	float osc = 91.0;
+	float osc = 0.0;
 	float env = 92.0;
 	CHECK(testParserNoteProperties("%.8", ParserEnums::Legato, ParserEnums::Set, .8));
 	CHECK(testParserNoteProperties("^*4/5", ParserEnums::Velocity, ParserEnums::Mul, .8));
@@ -264,14 +268,14 @@ TEST(Parse, NoteProperties)
 	CHECK(testParserNoteProperties("?+:5", ParserEnums::Note, ParserEnums::Add, env, '5'));
 	CHECK(testParserNoteProperties("&*:5", ParserEnums::Volume, ParserEnums::Mul, env, '5'));
 	CHECK(testParserNoteProperties("?*:5", ParserEnums::Note, ParserEnums::Mul, env, '5'));
-	//CHECK(testParserNoteProperties("&~5", ParserEnums::Volume, ParserEnums::Set, osc, '5'));
-	//CHECK(testParserNoteProperties("?~5", ParserEnums::Note, ParserEnums::Set, osc, '5'));
-	//CHECK(testParserNoteProperties("&+~5", ParserEnums::Volume, ParserEnums::Add, osc, '5'));
-	//CHECK(testParserNoteProperties("?+~5", ParserEnums::Note, ParserEnums::Add, osc, '5'));
-	//CHECK(testParserNoteProperties("&*~5", ParserEnums::Volume, ParserEnums::Mul, osc, '5'));
-	//CHECK(testParserNoteProperties("?*~5", ParserEnums::Note, ParserEnums::Mul, osc, '5'));
-	//CHECK(testParserNoteProperties(":5", ParserEnums::Note, ParserEnums::Add, env, '5'));
-	//CHECK(testParserNoteProperties("~5", ParserEnums::Note, ParserEnums::Add, osc, '5'));
+	CHECK(testParserNoteProperties("&~5", ParserEnums::Volume, ParserEnums::Set, osc, '5'));
+	CHECK(testParserNoteProperties("?~5", ParserEnums::Note, ParserEnums::Set, osc, '5'));
+	CHECK(testParserNoteProperties("&+~5", ParserEnums::Volume, ParserEnums::Add, osc, '5'));
+	CHECK(testParserNoteProperties("?+~5", ParserEnums::Note, ParserEnums::Add, osc, '5'));
+	CHECK(testParserNoteProperties("&*~5", ParserEnums::Volume, ParserEnums::Mul, osc, '5'));
+	CHECK(testParserNoteProperties("?*~5", ParserEnums::Note, ParserEnums::Mul, osc, '5'));
+	CHECK(testParserNoteProperties(":5", ParserEnums::Note, ParserEnums::Add, env, '5'));
+	CHECK(testParserNoteProperties("~5", ParserEnums::Note, ParserEnums::Add, osc, '5'));
 }
 
 TEST(Parse, WithMacro)
@@ -284,7 +288,7 @@ TEST(Parse, WithMacro)
 
 TEST(Parse, Envelope)
 {
-	ChainPool<Value>::Scope scopeValue(10, sizeof(Envelope));
+	ChainPool<Value>::Scope scopeValue(10);
 	ChainPool<Buffer<256>>::Scope scopeBuffer(10);
 	ptr<Envelope> env = ChainPool<Value>::instance().mk2<Envelope>();
 	env->addSegment(0.5, 0.7);

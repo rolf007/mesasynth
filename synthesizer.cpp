@@ -5,15 +5,17 @@
 
 using namespace std;
 
+const unsigned Synthesizer::Note::MaxSize = sizeof(Synthesizer::Note);
+
 Synthesizer::Synthesizer() : sample_nr(0), notePool_(10), instrument0_(ChainPool<Value>::instance().mk2<Piano>())
 {
 	noteNum_ = 0;
 }
 
-void Synthesizer::playNote(unsigned duration, float velocity, float note, float volume, ptr<Value> noteValuePtr, ptr<Value> volumeValuePtr)
+void Synthesizer::playNote(unsigned duration, float velocity, ptr<Value> note, ptr<Value> volume)
 {
 	cout << "======================== play note " << note << ", duration = " << duration << endl;
-	ptr<Note> newNote = ChainPool<Note>::instance().mk(note, duration, sample_nr, instrument0_);
+	ptr<Note> newNote = ChainPool<Note>::instance().mk(note, volume, duration, sample_nr, instrument0_);
 	notes__[noteNum_++] = newNote;
 	noteNum_ %= 8;
 }
@@ -30,32 +32,42 @@ void Synthesizer::generate(int16_t* begin, int16_t* end)
 			ptr<Buffer<256>> buf;
 			buf = note->get(sample_nr, len);
 			for(unsigned i = 0; i < buf->size_; ++i) {
-				p[i] += buf->buff[i]/2;
+				p[i] += buf->buff[i]/3;
 			}
 		}
+		// here, run though all global Values
 		sample_nr += len;
 		p += len;
 	}
 }
 
-ptr<Buffer<256>> Piano::get(unsigned sampleNr, unsigned len, const Ctx& ctx)
+ptr<Buffer<256>> Piano::get(unsigned sampleNr, unsigned len, Ctx& ctx)
 {
 	ptr<Buffer<256>> buff = ChainPool<Buffer<256>>::instance().mk(len);
-	float hz = pow(1.059463094, ctx.note())*65.40639133; // frequency of c0 is 65.40639133
+	ptr<Buffer<256>> note = ctx.note()->get(sampleNr, len, ctx);
+	ptr<Buffer<256>> volume = ctx.volume()->get(sampleNr, len, ctx);
+	float& sum = ctx.sum(this);
 	for(unsigned i = 0; i < buff->size_; ++i) {
-		double time = (double)(sampleNr+i) / (double)ctx.sampleRate();
-		int AMPLITUDE = 3600-(sampleNr+i)/5;
-		if (AMPLITUDE <0) AMPLITUDE = 0;
-		buff->buff[i]  = (int16_t)(AMPLITUDE * sin(2.0f * M_PI * hz * time*1)*1.00);
-		buff->buff[i] += (int16_t)(AMPLITUDE * sin(2.0f * M_PI * hz * time*2.01)*1.31/2);
-		buff->buff[i] += (int16_t)(AMPLITUDE * sin(2.0f * M_PI * hz * time*3.01)*2/3);
-		buff->buff[i] += (int16_t)(AMPLITUDE * sin(2.0f * M_PI * hz * time*4.01)*2.31/4);
-		buff->buff[i] += (int16_t)(AMPLITUDE * sin(2.0f * M_PI * hz * time*5.01)*0.31/5);
+		float hz = pow(1.059463094, note->buff[i])*65.40639133; // frequency of c0 is 65.40639133
+		sum += hz/(double)ctx.sampleRate();
+		float foo;
+		sum = modf(sum, &foo);
+		//cout << "Hz:" << hz << ", " << sum << endl;
+		//double time = (double)(sampleNr+i) / (double)ctx.sampleRate();
+		int AMPLITUDE = 3600-(sampleNr+i)/25;
+		if (AMPLITUDE < 0) AMPLITUDE = 0;
+		AMPLITUDE *= volume->buff[i];
+		buff->buff[i]  = (int16_t)(AMPLITUDE * sin(2.0f * M_PI * sum )*1.00);
+		//buff->buff[i] += (int16_t)(AMPLITUDE * sin(2.0f * M_PI * hz * time*2.01)*1.31/2);
+		//buff->buff[i] += (int16_t)(AMPLITUDE * sin(2.0f * M_PI * hz * time*3.01)*2/3);
+		//buff->buff[i] += (int16_t)(AMPLITUDE * sin(2.0f * M_PI * hz * time*4.01)*2.31/4);
+		//buff->buff[i] += (int16_t)(AMPLITUDE * sin(2.0f * M_PI * hz * time*5.01)*0.31/5);
 	}
+	//cout << "note: " <<  note->buff[0] << endl;
 	return buff;
 }
 
-Synthesizer::Note::Note(float note, unsigned duration, unsigned start_nr, ptr<Value> instrument) : note_(note), duration_(duration), start_nr_(start_nr), instrument_(instrument)
+Synthesizer::Note::Note(ptr<Value> note, ptr<Value> volume, unsigned duration, unsigned start_nr, ptr<Value> instrument) : note_(note), volume_(volume), duration_(duration), start_nr_(start_nr), instrument_(instrument)
 {
 }
 

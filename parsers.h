@@ -243,12 +243,17 @@ bool Parsers<T>::parseValue(T& str, ptr<Value>& valuePtr)
 {
 	T tmp = str;
 	if (*tmp == '~') {
+		std::cout << "mkOsc" << std::endl;
 		valuePtr = ChainPool<Value>::instance().mk2<Oscillator>(440.0, 0.5);
 		++tmp;
 		str = tmp;
 		return true;
 	} else if (*tmp == ':') {
-		valuePtr = ChainPool<Value>::instance().mk2<Envelope>();
+		std::cout << "mkEnv" << std::endl;
+		ptr<Envelope> env = ChainPool<Value>::instance().mk2<Envelope>();
+		env->addSegment(0,92);
+		env->addSegment(10,92);
+		valuePtr = env;
 		++tmp;
 		str = tmp;
 		return true;

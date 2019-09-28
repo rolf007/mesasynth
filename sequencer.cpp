@@ -6,6 +6,7 @@
 
 using namespace std;
 
+const unsigned Sequencer::Stack::MaxSize = sizeof(Sequencer::Stack);
 
 class Properties {
     float note;          // c2=24, c#2=25, c##2=26, c<2 = 23, d3=38 et.c. (sets note) <NOTE>
@@ -42,7 +43,7 @@ class Properties {
 
 
 
-Sequencer::Sequencer(SynthesizerIf& syn, float bpm4, float sampleRate) : subParsers_(40, sizeof(Stack)), syn_(syn), bpm4_(bpm4), sampleRate_(sampleRate)
+Sequencer::Sequencer(SynthesizerIf& syn, float bpm4, float sampleRate) : subParsers_(40), syn_(syn), bpm4_(bpm4), sampleRate_(sampleRate)
 {
 }
 
@@ -262,8 +263,7 @@ bool Sequencer::Stack::parse()
 		if (property == Legato) {
 			legatoModifier_ = modifier;
 			legato_ = value;
-		}
-		else if (property == Velocity)
+		} else if (property == Velocity)
 			apply(modifier, value, velocity_, velocity);
 		else if (property == Volume)
 			if (!valuePtr)
@@ -280,7 +280,13 @@ bool Sequencer::Stack::parse()
 	}
 	float noteLength = duration;
 	apply(legatoModifier_, legato_, noteLength, noteLength);
-	seq_.syn_.playNote(seq_.noteLengthToSamples(noteLength), velocity, note, volume, noteValuePtr, volumeValuePtr);
+	ptr<Value> notev = ChainPool<Value>::instance().mk2<Const>(note);
+	ptr<Value> volumev = ChainPool<Value>::instance().mk2<Const>(volume);
+	ptr<Value> vibr = ChainPool<Value>::instance().mk2<Oscillator>(4,.9);
+	ptr<Value> add  = ChainPool<Value>::instance().mk2<Adder>(notev, vibr);
+	ptr<Value> vibr2= ChainPool<Value>::instance().mk2<Oscillator>(3,.5);
+	ptr<Value> add2 = ChainPool<Value>::instance().mk2<Adder>(volumev, vibr2);
+	seq_.syn_.playNote(seq_.noteLengthToSamples(noteLength), velocity, add, add2);
 //---------------
 	timeToNext_ = duration;
 	init(parseSpace(ittr_));
