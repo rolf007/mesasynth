@@ -15,38 +15,50 @@ public:
 
 class Piano : public Value {
 public:
+	class Data {
+		float sum;
+	};
 	Piano(){}
-	ptr<Buffer<256>> get(unsigned sampleNr, unsigned len, Ctx& ctx) override;
+	ptr<Buffer<256>> get(unsigned sampleNr, unsigned len, Ctx& ctx, ptr<Buffer<32>> data) override;
+	virtual unsigned size() const override { return sizeof(Data); };
+};
+
+
+
+class Note : public refcnt<Note>, public Ctx {
+public:
+	static const unsigned MaxSize;
+	Note(ptr<Value> note, ptr<Value> volume, unsigned duration, unsigned start_nr, ptr<Value> instrument);
+	virtual ~Note();
+	ptr<Buffer<256>> get(unsigned sample_nr, unsigned len);
+private:
+	using ValueInstanceMap = std::map<char, ValueInstance>;
+	ValueInstanceMap noteInstances_; // key = 0 is the actual instrument, '?' is note, '&' is volume
+	unsigned duration_;
+	unsigned start_nr_;
+	virtual ValueInstance note() const override;
+	virtual ValueInstance volume() const override;
+	virtual float sampleRate() const override { return 44100; }
+};
+
+class Instrument {
+public:
+	std::map<char, ptr<Value>> types_; // key = 0 is the actual instrument
+	std::map<char, ValueInstance> instrInstances_;
+	ptr<Note> notes__[8];
+
 };
 
 class Synthesizer : public SynthesizerIf {
 public:
-	class Note : public refcnt<Note>, public Ctx {
-	public:
-		static const unsigned MaxSize;
-		Note(ptr<Value> note, ptr<Value> volume, unsigned duration, unsigned start_nr, ptr<Value> instrument);
-		virtual ~Note();
-		ptr<Buffer<256>> get(unsigned sample_nr, unsigned len);
-	private:
-		ptr<Value> instrument_;
-		ptr<Value> note_;
-		ptr<Value> volume_;
-		unsigned duration_;
-		unsigned start_nr_;
-		virtual ptr<Value> note() const override { return note_; }
-		virtual ptr<Value> volume() const override { return volume_; }
-		virtual float sampleRate() const override { return 44100; }
-		virtual float& sum(Value* v) override { return sumMap_[v]; }
-		std::map<Value*, float> sumMap_;
-	};
-	ptr<Value> instrument0_;
 	Synthesizer();
     void playNote(unsigned duration, float velocity, ptr<Value> note, ptr<Value> volume) override;
 	void generate(int16_t* begin, int16_t* end);
 private:
 	int sample_nr;
-	ChainPool<Note>::Scope notePool_;
-	ptr<Note> notes__[8];
+	ChainPool<Note>::Scope notePoolScope_;
+	ChainPool<Buffer<32>>::Scope dataPoolScope_;
+	Instrument instrument0_;
 	unsigned noteNum_;
 };
 

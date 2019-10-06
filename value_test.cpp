@@ -10,12 +10,10 @@ using namespace std;
 namespace {
 class TestCtx : public Ctx {
 public:
-	TestCtx() : sum_(0.0) {}
-	ptr<Value> note() const override { return ChainPool<Value>::instance().mk2<Const>(0.0); }
-	ptr<Value> volume() const override { return ChainPool<Value>::instance().mk2<Const>(0.0); }
+	TestCtx() {}
+	ValueInstance note() const override { return ValueInstance(ChainPool<Value>::instance().mk2<Const>(0.0)); }
+	ValueInstance volume() const override { return ValueInstance(ChainPool<Value>::instance().mk2<Const>(0.0)); }
 	float sampleRate() const override { return 14080; }
-	float& sum(Value*) override { return sum_; }
-	float sum_;
 };
 
 class ExpBuff {
@@ -141,7 +139,7 @@ TEST(Value, envelope)
 	env->addSegment(.001,1);
 
 	ExpBuff exp(64, "     %UTD3Y==!$_BRY:/UUTD3]TT;4_BR[:/Z*+_C]==!% Z*(C0'31-4#__T= BRY:0!==;$\"BBWY   \" 0   @$   (!   \" 0   @$   (!   \" 0   @$   (!   \" 0   @$   (!   \" 0   @$   (!   \" 0   @$   (!   \" 0   @$   (!   \" 0   @$   (!   \" 0   @$   (!   \" 0.FB=4   &A &%U:0\"^Z3$!&%S] 7G0Q0'71(T\",+A9 I(L(0';1]3^DB]H_TT6_/P( I#\\PNH@_  \" /P  @#\\  ( _  \" /P  @#\\  ( _  \" /P  ");
-	ptr<Buffer<256>> got = env->get(0, 64, ctx);
+	ptr<Buffer<256>> got = env->get(0, 64, ctx,nullptr);
 	EXPECT_EQ(exp, got);
 	EXPECT_EQ(4.0, got->buff[20]);
 	EXPECT_EQ(1.0, got->buff[60]);
@@ -155,7 +153,7 @@ TEST(Value, empty_envelope)
 	ptr<Envelope> env = ChainPool<Value>::instance().mk2<Envelope>();
 
 	ExpBuff exp(64, "                                                                                                                                                                                                                                                                                                                                                        ");
-	ptr<Buffer<256>> got = env->get(0, 64, ctx);
+	ptr<Buffer<256>> got = env->get(0, 64, ctx,nullptr);
 	EXPECT_EQ(exp, got);
 	EXPECT_EQ(0.0, got->buff[20]);
 	EXPECT_EQ(0.0, got->buff[60]);
@@ -175,7 +173,7 @@ TEST(Value, non_continous_envelope)
 	env->addSegment(0,2);
 
 	ExpBuff exp(64, "  \" 0   @$   (!   \" 0   @$   (!   \" 0   @$   (!   \" 0   @$   (!   \" 0   @$   (!   ! 0   0$   $!   ! 0   0$   $!   ! 0   0$   $!   ! 0   0$   $!   ! 0   0$    !     0    $    !     0    $    !     0    $    !     0    $    !     0    $    !     0    $    !     0    $    !     0    $    !     0    $    !     0    $    !     0    $    !     0   ");
-	ptr<Buffer<256>> got = env->get(0, 64, ctx);
+	ptr<Buffer<256>> got = env->get(0, 64, ctx,nullptr);
 	EXPECT_EQ(exp, got);
 	EXPECT_EQ(4.0, got->buff[10]);
 	EXPECT_EQ(3.0, got->buff[20]);
@@ -189,7 +187,7 @@ TEST(Value, oscillator)
 	ChainPool<Buffer<256>>::Scope bufferPool(10);
 	ptr<Oscillator> osc = ChainPool<Value>::instance().mk2<Oscillator>(440.0, 0.5);
 	ExpBuff exp(64, "     ,+%QST5[T,^VCF./O,$M3XQV]0^7H/L/KX4^SX    _OA3[/EZ#[#XQV]0^\\P2U/MHYCCX5[T,^PL7'/3(QC23\"Q<>]%>]#OMHYCK[S!+6^,=O4OEZ#[+Z^%/N^    O[X4^[Y>@^R^,=O4OO,$M;[:.8Z^%>]#OL+%Q[TR,0VEPL7'/17O0S[:.8X^\\P2U/C';U#Y>@^P^OA3[/@   #^^%/L^7H/L/C';U#[S!+4^VCF./A7O0S[\"Q<<]RLE3)<+%Q[T5[T.^VCF.OO,$M;XQV]2^7H/LOKX4^[X   \"_OA3[OEZ#[+XQV]2^\\P2UOMHYCKX5[T.^PL7'O0  ");
-	ptr<Buffer<256>> got = osc->get(0, 64, ctx);
+	ptr<Buffer<256>> got = osc->get(0, 64, ctx,nullptr);
 	EXPECT_EQ(exp, got);
 }
 }

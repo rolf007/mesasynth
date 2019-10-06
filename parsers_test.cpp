@@ -120,11 +120,9 @@ void testParserDefaultPropertiesFail(const char* str)
 }
 
 class TestCtx : public Ctx {
-	ptr<Value> note() const override { return ChainPool<Value>::instance().mk2<Const>(0.0); }
-	ptr<Value> volume() const override { return ChainPool<Value>::instance().mk2<Const>(0.0); }
+	ValueInstance note() const override { return ValueInstance(ChainPool<Value>::instance().mk2<Const>(0.0)); }
+	ValueInstance volume() const override { return ValueInstance(ChainPool<Value>::instance().mk2<Const>(0.0)); }
 	float sampleRate() const override { return 1.0; }
-	float& sum(Value*) override { return sum_; }
-	float sum_;
 };
 
 void testParserNoteProperties(const char* str, Parsers<const char*>::Property expProperty, Parsers<const char*>::Modifier expModifier, float expValue, char end=0)
@@ -142,7 +140,7 @@ void testParserNoteProperties(const char* str, Parsers<const char*>::Property ex
 	if (!valuePtr)
 		EXPECT_FLOAT_EQ(expValue, value);
 	else
-		EXPECT_FLOAT_EQ(expValue, valuePtr->get(0,1,ctx)->buff[0]);
+		EXPECT_FLOAT_EQ(expValue, valuePtr->get(0,1,ctx,nullptr)->buff[0]);
 }
 
 void testParserNotePropertiesFail(const char* str)

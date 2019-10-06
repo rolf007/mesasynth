@@ -7,11 +7,15 @@ using namespace std;
 
 const unsigned Value::MaxSize = sizeof(Adder);
 
+ValueInstance::ValueInstance(ptr<Value> value) : value_(value), data_(value_ ? ChainPool<Buffer<32>>::instance().mk(32) : nullptr)
+{
+}
+
 Oscillator::Oscillator(float freq, float amp) : freq_(freq), amp_(amp)
 {
 }
 
-ptr<Buffer<256>> Oscillator::get(unsigned sampleNr, unsigned len, Ctx& ctx)
+ptr<Buffer<256>> Oscillator::get(unsigned sampleNr, unsigned len, Ctx& ctx, ptr<Buffer<32>> data)
 {
 	ptr<Buffer<256>> buff = ChainPool<Buffer<256>>::instance().mk(len);
 	float hz = freq_;
@@ -22,7 +26,7 @@ ptr<Buffer<256>> Oscillator::get(unsigned sampleNr, unsigned len, Ctx& ctx)
 	return buff;
 }
 
-ptr<Buffer<256>> Envelope::get(unsigned sampleNr, unsigned len, Ctx& ctx)
+ptr<Buffer<256>> Envelope::get(unsigned sampleNr, unsigned len, Ctx& ctx, ptr<Buffer<32>> data)
 {
 	ptr<Buffer<256>> buff = ChainPool<Buffer<256>>::instance().mk(len);
 	float oldVal = 0.0;
@@ -56,7 +60,7 @@ void Envelope::addSegment(float duration, float value)
 	segments_.push_back(pair<float, float>(duration, value));
 }
 
-ptr<Buffer<256>> Const::get(unsigned sampleNr, unsigned len, Ctx& ctx)
+ptr<Buffer<256>> Const::get(unsigned sampleNr, unsigned len, Ctx& ctx, ptr<Buffer<32>> data)
 {
 	ptr<Buffer<256>> buff = ChainPool<Buffer<256>>::instance().mk(len);
 	for (unsigned i = 0; i < buff->size(); ++i)
@@ -64,11 +68,11 @@ ptr<Buffer<256>> Const::get(unsigned sampleNr, unsigned len, Ctx& ctx)
 	return buff;
 }
 
-ptr<Buffer<256>> Adder::get(unsigned sampleNr, unsigned len, Ctx& ctx)
+ptr<Buffer<256>> Adder::get(unsigned sampleNr, unsigned len, Ctx& ctx, ptr<Buffer<32>> data)
 {
 	ptr<Buffer<256>> buff = ChainPool<Buffer<256>>::instance().mk(len);
-	ptr<Buffer<256>> l = lhs_->get(sampleNr, len, ctx);
-	ptr<Buffer<256>> r = rhs_->get(sampleNr, len, ctx);
+	ptr<Buffer<256>> l = lhs_->get(sampleNr, len, ctx, data);
+	ptr<Buffer<256>> r = rhs_->get(sampleNr, len, ctx, data);
 	for (unsigned i = 0; i < buff->size(); ++i) {
 		buff->buff[i] = l->buff[i] + r->buff[i];
 	}

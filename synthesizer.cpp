@@ -5,18 +5,19 @@
 
 using namespace std;
 
-const unsigned Synthesizer::Note::MaxSize = sizeof(Synthesizer::Note);
+const unsigned Note::MaxSize = sizeof(Note);
 
-Synthesizer::Synthesizer() : sample_nr(0), notePool_(10), instrument0_(ChainPool<Value>::instance().mk2<Piano>())
+Synthesizer::Synthesizer() : sample_nr(0), notePoolScope_(10), dataPoolScope_(10)
 {
+	instrument0_.types_[0] = ChainPool<Value>::instance().mk2<Piano>();
 	noteNum_ = 0;
 }
 
 void Synthesizer::playNote(unsigned duration, float velocity, ptr<Value> note, ptr<Value> volume)
 {
 	cout << "======================== play note " << note << ", duration = " << duration << endl;
-	ptr<Note> newNote = ChainPool<Note>::instance().mk(note, volume, duration, sample_nr, instrument0_);
-	notes__[noteNum_++] = newNote;
+	ptr<Note> newNote = ChainPool<Note>::instance().mk(note, volume, duration, sample_nr, instrument0_.types_[0]);
+	instrument0_.notes__[noteNum_++] = newNote;
 	noteNum_ %= 8;
 }
 
@@ -27,7 +28,7 @@ void Synthesizer::generate(int16_t* begin, int16_t* end)
 	while (p < end) {
 		unsigned len = end-p;
 		if (len>256) len = 256;
-		for (ptr<Note> note : notes__) {
+		for (ptr<Note> note : instrument0_.notes__) {
 			if (!note) continue;
 			ptr<Buffer<256>> buf;
 			buf = note->get(sample_nr, len);
@@ -41,12 +42,13 @@ void Synthesizer::generate(int16_t* begin, int16_t* end)
 	}
 }
 
-ptr<Buffer<256>> Piano::get(unsigned sampleNr, unsigned len, Ctx& ctx)
+ptr<Buffer<256>> Piano::get(unsigned sampleNr, unsigned len, Ctx& ctx, ptr<Buffer<32>> data)
 {
 	ptr<Buffer<256>> buff = ChainPool<Buffer<256>>::instance().mk(len);
-	ptr<Buffer<256>> note = ctx.note()->get(sampleNr, len, ctx);
-	ptr<Buffer<256>> volume = ctx.volume()->get(sampleNr, len, ctx);
-	float& sum = ctx.sum(this);
+	ptr<Buffer<256>> note = ctx.note().value_->get(sampleNr, len, ctx, data);
+	ptr<Buffer<256>> volume = ctx.volume().value_->get(sampleNr, len, ctx, data);
+	//float& sum = ctx.sum(this);
+	float& sum = data->buff[0];
 	for(unsigned i = 0; i < buff->size_; ++i) {
 		float hz = pow(1.059463094, note->buff[i])*65.40639133; // frequency of c0 is 65.40639133
 		sum += hz/(double)ctx.sampleRate();
@@ -67,19 +69,44 @@ ptr<Buffer<256>> Piano::get(unsigned sampleNr, unsigned len, Ctx& ctx)
 	return buff;
 }
 
-Synthesizer::Note::Note(ptr<Value> note, ptr<Value> volume, unsigned duration, unsigned start_nr, ptr<Value> instrument) : note_(note), volume_(volume), duration_(duration), start_nr_(start_nr), instrument_(instrument)
+Note::Note(ptr<Value> note, ptr<Value> volume, unsigned duration, unsigned start_nr, ptr<Value> instrument) : duration_(duration), start_nr_(start_nr)
 {
+	noteInstances_.insert(make_pair(0, ValueInstance(instrument)));
+	noteInstances_.insert(make_pair('?', ValueInstance(note)));
+	noteInstances_.insert(make_pair('&', ValueInstance(volume)));
 }
 
-Synthesizer::Note::~Note()
+Note::~Note()
 {
 	cout << "note really terminated" << endl;
 }
 
 
-ptr<Buffer<256>> Synthesizer::Note::get(unsigned sample_nr, unsigned len)
+ptr<Buffer<256>> Note::get(unsigned sample_nr, unsigned len)
 {
-	return instrument_->get(sample_nr-start_nr_, len, *this);
+
+	ValueInstanceMap::const_iterator p = noteInstances_.find(0);
+	if (p != noteInstances_.end()) {
+		const ValueInstance& vi = p->second;
+		return vi.value_->get(sample_nr-start_nr_, len, *this, vi.data_);
+	}
+	return nullptr;
+}
+
+ValueInstance Note::note() const
+{
+	ValueInstanceMap::const_iterator p = noteInstances_.find('?');
+	if (p != noteInstances_.end())
+		return p->second;
+	return ValueInstance(nullptr);
+}
+
+ValueInstance Note::volume() const
+{
+	ValueInstanceMap::const_iterator p = noteInstances_.find('&');
+	if (p != noteInstances_.end())
+		return p->second;
+	return ValueInstance(nullptr);
 }
 
 // from seq, we get: volume(&), note(?), freq(??), velocity(^), duration($)
