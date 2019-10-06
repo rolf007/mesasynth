@@ -25,15 +25,28 @@ ptr<Buffer<256>> Oscillator::get(unsigned sampleNr, unsigned len, Ctx& ctx)
 ptr<Buffer<256>> Envelope::get(unsigned sampleNr, unsigned len, Ctx& ctx)
 {
 	ptr<Buffer<256>> buff = ChainPool<Buffer<256>>::instance().mk(len);
-	float& sum = ctx.sum(this);
+	float oldVal = 0.0;
+	float val= 0.0;
+	float dt = 0.0;
+	unsigned j = 0;
+	float duration = 0.0;
+	bool ended = false;
 	for(unsigned i = 0; i < buff->size(); ++i) {
 		double time = (double)(sampleNr+i) / (double)ctx.sampleRate();
-		if (time < segments_[0].first)
-			buff->buff[i] = time/segments_[0].first*segments_[0].second;
-		else if (time < segments_[1].first + segments_[0].first)
-			buff->buff[i] = (time-segments_[0].first)/segments_[1].first*(segments_[1].second - segments_[0].second) + segments_[0].second;
-		else if (time < segments_[2].first + segments_[1].first + segments_[0].first)
-			buff->buff[i] = (time-segments_[0].first-segments_[1].first)/segments_[2].first*(segments_[2].second - segments_[1].second) + segments_[1].second;
+		while (!ended && time-dt >= duration) {
+			if (j == segments_.size()) {
+				duration = 1;
+				ended = true;
+				oldVal = val;
+			} else {
+				dt += duration;
+				duration = segments_[j].first;
+				oldVal = val;
+				val = segments_[j].second;
+			}
+			++j;
+		}
+		buff->buff[i] = (time-dt)/duration*(val - oldVal) + oldVal;
 	}
 	return buff;
 }

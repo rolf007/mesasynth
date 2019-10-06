@@ -138,13 +138,48 @@ TEST(Value, envelope)
 	//1>4:2>4:1>;
 	env->addSegment(.001,4);
 	env->addSegment(.002,4);
-	env->addSegment(.001,0);
+	env->addSegment(.001,1);
 
-	ExpBuff exp(64, "     %UTD3Y==!$_BRY:/UUTD3]TT;4_BR[:/Z*+_C]==!% Z*(C0'31-4#__T= BRY:0!==;$\"BBWY   \" 0   @$   (!   \" 0   @$   (!   \" 0   @$   (!   \" 0   @$   (!   \" 0   @$   (!   \" 0   @$   (!   \" 0   @$   (!   \" 0   @$   (!   \" 0   @$   (!   \" 0(XN<D \" &! =]%-0.NB.T!@=\"E U$470$D7!4!ZT>4_8W3!/TP7G3]I='$_.[HH/QD P#[Q+KH]                                        ");
+	ExpBuff exp(64, "     %UTD3Y==!$_BRY:/UUTD3]TT;4_BR[:/Z*+_C]==!% Z*(C0'31-4#__T= BRY:0!==;$\"BBWY   \" 0   @$   (!   \" 0   @$   (!   \" 0   @$   (!   \" 0   @$   (!   \" 0   @$   (!   \" 0   @$   (!   \" 0   @$   (!   \" 0   @$   (!   \" 0   @$   (!   \" 0.FB=4   &A &%U:0\"^Z3$!&%S] 7G0Q0'71(T\",+A9 I(L(0';1]3^DB]H_TT6_/P( I#\\PNH@_  \" /P  @#\\  ( _  \" /P  @#\\  ( _  \" /P  ");
 	ptr<Buffer<256>> got = env->get(0, 64, ctx);
 	EXPECT_EQ(exp, got);
 	EXPECT_EQ(4.0, got->buff[20]);
+	EXPECT_EQ(1.0, got->buff[60]);
+}
+
+TEST(Value, empty_envelope)
+{
+	TestCtx ctx;
+	ChainPool<Value>::Scope valuePool(10);
+	ChainPool<Buffer<256>>::Scope bufferPool(10);
+	ptr<Envelope> env = ChainPool<Value>::instance().mk2<Envelope>();
+
+	ExpBuff exp(64, "                                                                                                                                                                                                                                                                                                                                                        ");
+	ptr<Buffer<256>> got = env->get(0, 64, ctx);
+	EXPECT_EQ(exp, got);
+	EXPECT_EQ(0.0, got->buff[20]);
 	EXPECT_EQ(0.0, got->buff[60]);
+}
+
+TEST(Value, non_continous_envelope)
+{
+	TestCtx ctx;
+	ChainPool<Value>::Scope valuePool(10);
+	ChainPool<Buffer<256>>::Scope bufferPool(10);
+	ptr<Envelope> env = ChainPool<Value>::instance().mk2<Envelope>();
+	// :>4:1>4:>3:1>3:>2;
+	env->addSegment(0,4);
+	env->addSegment(0.001,4);
+	env->addSegment(0,3);
+	env->addSegment(0.001,3);
+	env->addSegment(0,2);
+
+	ExpBuff exp(64, "  \" 0   @$   (!   \" 0   @$   (!   \" 0   @$   (!   \" 0   @$   (!   \" 0   @$   (!   ! 0   0$   $!   ! 0   0$   $!   ! 0   0$   $!   ! 0   0$   $!   ! 0   0$    !     0    $    !     0    $    !     0    $    !     0    $    !     0    $    !     0    $    !     0    $    !     0    $    !     0    $    !     0    $    !     0    $    !     0   ");
+	ptr<Buffer<256>> got = env->get(0, 64, ctx);
+	EXPECT_EQ(exp, got);
+	EXPECT_EQ(4.0, got->buff[10]);
+	EXPECT_EQ(3.0, got->buff[20]);
+	EXPECT_EQ(2.0, got->buff[60]);
 }
 
 TEST(Value, oscillator)
