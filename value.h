@@ -4,16 +4,15 @@
 #include "refcnt.h"
 #include <set>
 #include <vector>
+#include "buffer.h"
 
 class Value;
-template<unsigned S>
-class Buffer;
 
 class ValueInstance {
 public:
 	explicit ValueInstance(ptr<Value> value);
 	ptr<Value> value_;
-	ptr<Buffer<32>> data_;
+	ptr<DataBuffer> data_;
 };
 
 class Ctx {
@@ -28,7 +27,7 @@ public:
 	static const unsigned MaxSize;
 	Value() {}
 	virtual ~Value() = default;
-	virtual ptr<Buffer<256>> get(unsigned sampleNr, unsigned len, Ctx& ctx, ptr<Buffer<32>> data) = 0;
+	virtual ptr<AudioBuffer> get(unsigned sampleNr, unsigned len, Ctx& ctx, ptr<DataBuffer> data) = 0;
 	virtual unsigned size() const = 0;
 };
 
@@ -38,7 +37,7 @@ public:
 		float sum;
 	};
 	Oscillator(float freq, float amp);
-	ptr<Buffer<256>> get(unsigned sampleNr, unsigned len, Ctx& ctx, ptr<Buffer<32>> data) override;
+	ptr<AudioBuffer> get(unsigned sampleNr, unsigned len, Ctx& ctx, ptr<DataBuffer> data) override;
 	virtual unsigned size() const override { return sizeof(Data); };
 private:
 	float freq_;
@@ -48,7 +47,7 @@ private:
 class Envelope : public Value {
 public:
 	Envelope() {}
-	ptr<Buffer<256>> get(unsigned sampleNr, unsigned len, Ctx& ctx, ptr<Buffer<32>> data) override;
+	ptr<AudioBuffer> get(unsigned sampleNr, unsigned len, Ctx& ctx, ptr<DataBuffer> data) override;
 	void addSegment(float duration, float value);
 	std::vector<std::pair<float, float>> segments_;
 	virtual unsigned size() const override { return 0; };
@@ -57,7 +56,7 @@ public:
 class Const : public Value {
 public:
 	Const(float value) : value_(value) {}
-	ptr<Buffer<256>> get(unsigned sampleNr, unsigned len, Ctx& ctx, ptr<Buffer<32>> data) override;
+	ptr<AudioBuffer> get(unsigned sampleNr, unsigned len, Ctx& ctx, ptr<DataBuffer> data) override;
 	virtual unsigned size() const override { return 0; };
 private:
 	float value_;
@@ -66,7 +65,7 @@ private:
 class Adder : public Value {
 public:
 	Adder(ptr<Value> lhs, ptr<Value> rhs) : lhs_(lhs), rhs_(rhs) {}
-	ptr<Buffer<256>> get(unsigned sampleNr, unsigned len, Ctx& ctx, ptr<Buffer<32>> data) override;
+	ptr<AudioBuffer> get(unsigned sampleNr, unsigned len, Ctx& ctx, ptr<DataBuffer> data) override;
 	virtual unsigned size() const override { return lhs_->size() + rhs_->size(); };
 private:
 	ptr<Value> lhs_;

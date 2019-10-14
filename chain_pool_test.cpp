@@ -106,4 +106,16 @@ TEST(ChainPool, polymorphism)
 	EXPECT_EQ(3, SmallChild::deletes);
 	EXPECT_EQ(3, BigChild::deletes);
 }
+
+#include "buffer.h"
+
+TEST(ChainPool, buffer2)
+{
+	ChainPool<BufferMem<uint8_t, 32>>::Scope scope(4);
+	struct Dummy { float a, b; };
+	using DummyPool = ChainPool<BufferMem<uint8_t, 32>>;
+	Buff buff = Buff::mk<DummyPool>(5); // make 5 chars from DummyPool
+	Dummy* dummy = (Dummy*)buff.get();
+	dummy->a = 2.3;
+}
 }

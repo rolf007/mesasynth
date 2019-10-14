@@ -27,8 +27,13 @@ public:
 	void destroy();
 };
 
+class ptr_base {
+public:
+	virtual ~ptr_base() {}
+};
+
 template<class C>
-class ptr {
+class ptr : public ptr_base {
 	C* p;
 	void check_null() const { if (!p) null_ptr_error(typeid(p).name()); }
 	void release(C* p) {

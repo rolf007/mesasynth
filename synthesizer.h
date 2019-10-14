@@ -19,7 +19,7 @@ public:
 		float sum;
 	};
 	Piano(){}
-	ptr<Buffer<256>> get(unsigned sampleNr, unsigned len, Ctx& ctx, ptr<Buffer<32>> data) override;
+	ptr<AudioBuffer> get(unsigned sampleNr, unsigned len, Ctx& ctx, ptr<DataBuffer> data) override;
 	virtual unsigned size() const override { return sizeof(Data); };
 };
 
@@ -30,7 +30,7 @@ public:
 	static const unsigned MaxSize;
 	Note(ptr<Value> note, ptr<Value> volume, unsigned duration, unsigned start_nr, ptr<Value> instrument);
 	virtual ~Note();
-	ptr<Buffer<256>> get(unsigned sample_nr, unsigned len);
+	ptr<AudioBuffer> get(unsigned sample_nr, unsigned len);
 private:
 	using ValueInstanceMap = std::map<char, ValueInstance>;
 	ValueInstanceMap noteInstances_; // key = 0 is the actual instrument, '?' is note, '&' is volume
@@ -57,7 +57,7 @@ public:
 private:
 	int sample_nr;
 	ChainPool<Note>::Scope notePoolScope_;
-	ChainPool<Buffer<32>>::Scope dataPoolScope_;
+	ChainPool<DataBuffer>::Scope dataPoolScope_;
 	Instrument instrument0_;
 	unsigned noteNum_;
 };

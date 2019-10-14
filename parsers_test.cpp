@@ -140,7 +140,7 @@ void testParserNoteProperties(const char* str, Parsers<const char*>::Property ex
 	if (!valuePtr)
 		EXPECT_FLOAT_EQ(expValue, value);
 	else
-		EXPECT_FLOAT_EQ(expValue, valuePtr->get(0,1,ctx,nullptr)->buff[0]);
+		EXPECT_FLOAT_EQ(expValue, valuePtr->get(0,1,ctx,nullptr)->buff()[0]);
 }
 
 void testParserNotePropertiesFail(const char* str)
@@ -247,7 +247,7 @@ TEST(Parse, DefaultProperties)
 TEST(Parse, NoteProperties)
 {
 	ChainPool<Value>::Scope scopeValue(10);
-	ChainPool<Buffer<256>>::Scope scopeBuffer(10);
+	ChainPool<AudioBuffer>::Scope scopeBuffer(10);
 	float osc = 0.0;
 	float env = 92.0;
 	CHECK(testParserNoteProperties("%.8", ParserEnums::Legato, ParserEnums::Set, .8));
@@ -287,7 +287,7 @@ TEST(Parse, WithMacro)
 TEST(Parse, Envelope)
 {
 	ChainPool<Value>::Scope scopeValue(10);
-	ChainPool<Buffer<256>>::Scope scopeBuffer(10);
+	ChainPool<AudioBuffer>::Scope scopeBuffer(10);
 	ptr<Envelope> env = ChainPool<Value>::instance().mk2<Envelope>();
 	env->addSegment(0.5, 0.7);
 	//CHECK(testParserEnvelope(manager, bufferPool, ":5", ParserEnums::Note, ParserEnums::Add, env, '5'));

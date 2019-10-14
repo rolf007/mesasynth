@@ -21,8 +21,8 @@ public:
 	ExpBuff() {
 	}
 	ExpBuff(unsigned size, const char* str) {
-		buff = ChainPool<Buffer<256>>::instance().mk(size);
-		unsigned char* p = (unsigned char*)buff->buff;
+		buff = ChainPool<AudioBuffer>::instance().mk(size);
+		unsigned char* p = (unsigned char*)buff->buff();
 		unsigned chars = buff->size()*sizeof(float);
 		for (unsigned i = 0; i < chars; i+=3) {
 			char c0 = *str++;
@@ -37,20 +37,20 @@ public:
 			if (i+2 < chars) p[i+2] = v2;
 		}
 	}
-	ptr<Buffer<256>> buff;
+	ptr<AudioBuffer> buff;
 };
 
-bool operator==(const ExpBuff& buff0, const ptr<Buffer<256>>& buff1)
+bool operator==(const ExpBuff& buff0, const ptr<AudioBuffer>& buff1)
 {
 	if (buff0.buff->size() != buff1->size())
 		return false;
 	for (unsigned i = 0; i < buff1->size(); ++i)
-		if (buff0.buff->buff[i] != buff1->buff[i])
+		if (buff0.buff->buff()[i] != buff1->buff()[i])
 			return false;
 	return true;
 }
 
-static ptr<Buffer<256>> gGotBuff;
+static ptr<AudioBuffer> gGotBuff;
 std::ostream& operator<<(std::ostream& os, const ExpBuff& expBuff)
 {
 	os << endl;
@@ -58,15 +58,15 @@ std::ostream& operator<<(std::ostream& os, const ExpBuff& expBuff)
     static constexpr unsigned width=100;
     float min = 10000.0;
     float max = -10000.0;
-	ptr<Buffer<256>> buff2 = gGotBuff;
-	ptr<Buffer<256>> buff = expBuff.buff;
+	ptr<AudioBuffer> buff2 = gGotBuff;
+	ptr<AudioBuffer> buff = expBuff.buff;
     for (unsigned i = 0; i < buff->size(); ++i) {
-        if (buff->buff[i] > max) max = buff->buff[i];
-        if (buff->buff[i] < min) min = buff->buff[i];
+        if (buff->buff()[i] > max) max = buff->buff()[i];
+        if (buff->buff()[i] < min) min = buff->buff()[i];
     }
     for (unsigned i = 0; i < buff2->size(); ++i) {
-        if (buff2->buff[i] > max) max = buff2->buff[i];
-        if (buff2->buff[i] < min) min = buff2->buff[i];
+        if (buff2->buff()[i] > max) max = buff2->buff()[i];
+        if (buff2->buff()[i] < min) min = buff2->buff()[i];
     }
     unsigned maxSize = buff->size() > buff2->size() ? buff->size() : buff2->size();
     char screen[height*width];
@@ -74,11 +74,11 @@ std::ostream& operator<<(std::ostream& os, const ExpBuff& expBuff)
     for (unsigned x = 0; x < width; ++x) {
         unsigned i = x*maxSize/width;
         if (i < buff->size()) {
-            unsigned y = (max-buff->buff[i])*(height-1)/(max-min);
+            unsigned y = (max-buff->buff()[i])*(height-1)/(max-min);
             screen[x+y*width] = '.';
         }
         if (i < buff2->size()) {
-            unsigned y2 = (max-buff2->buff[i])*(height-1)/(max-min);
+            unsigned y2 = (max-buff2->buff()[i])*(height-1)/(max-min);
             screen[x+y2*width] = 'o';
         }
     }
@@ -102,11 +102,11 @@ ostream& uuOut(ostream& os, const char& c)
 	else os << c;
 	return os;
 }
-std::ostream& operator<<(std::ostream& os, const ptr<Buffer<256>>& buff)
+std::ostream& operator<<(std::ostream& os, const ptr<AudioBuffer>& buff)
 {
 	os << "see above" << endl;
 	os << "\"";
-	unsigned char* p = (unsigned char*)(buff->buff);
+	unsigned char* p = (unsigned char*)(buff->buff());
 	unsigned chars = buff->size()*sizeof(float);
 	for (unsigned i = 0; i < chars; i+=3) {
 		unsigned char v0 = p[i];
@@ -131,7 +131,7 @@ TEST(Value, envelope)
 {
 	TestCtx ctx;
 	ChainPool<Value>::Scope valuePool(10);
-	ChainPool<Buffer<256>>::Scope bufferPool(10);
+	ChainPool<AudioBuffer>::Scope bufferPool(10);
 	ptr<Envelope> env = ChainPool<Value>::instance().mk2<Envelope>();
 	//1>4:2>4:1>;
 	env->addSegment(.001,4);
@@ -139,31 +139,31 @@ TEST(Value, envelope)
 	env->addSegment(.001,1);
 
 	ExpBuff exp(64, "     %UTD3Y==!$_BRY:/UUTD3]TT;4_BR[:/Z*+_C]==!% Z*(C0'31-4#__T= BRY:0!==;$\"BBWY   \" 0   @$   (!   \" 0   @$   (!   \" 0   @$   (!   \" 0   @$   (!   \" 0   @$   (!   \" 0   @$   (!   \" 0   @$   (!   \" 0   @$   (!   \" 0   @$   (!   \" 0.FB=4   &A &%U:0\"^Z3$!&%S] 7G0Q0'71(T\",+A9 I(L(0';1]3^DB]H_TT6_/P( I#\\PNH@_  \" /P  @#\\  ( _  \" /P  @#\\  ( _  \" /P  ");
-	ptr<Buffer<256>> got = env->get(0, 64, ctx,nullptr);
+	ptr<AudioBuffer> got = env->get(0, 64, ctx,nullptr);
 	EXPECT_EQ(exp, got);
-	EXPECT_EQ(4.0, got->buff[20]);
-	EXPECT_EQ(1.0, got->buff[60]);
+	EXPECT_EQ(4.0, got->buff()[20]);
+	EXPECT_EQ(1.0, got->buff()[60]);
 }
 
 TEST(Value, empty_envelope)
 {
 	TestCtx ctx;
 	ChainPool<Value>::Scope valuePool(10);
-	ChainPool<Buffer<256>>::Scope bufferPool(10);
+	ChainPool<AudioBuffer>::Scope bufferPool(10);
 	ptr<Envelope> env = ChainPool<Value>::instance().mk2<Envelope>();
 
 	ExpBuff exp(64, "                                                                                                                                                                                                                                                                                                                                                        ");
-	ptr<Buffer<256>> got = env->get(0, 64, ctx,nullptr);
+	ptr<AudioBuffer> got = env->get(0, 64, ctx,nullptr);
 	EXPECT_EQ(exp, got);
-	EXPECT_EQ(0.0, got->buff[20]);
-	EXPECT_EQ(0.0, got->buff[60]);
+	EXPECT_EQ(0.0, got->buff()[20]);
+	EXPECT_EQ(0.0, got->buff()[60]);
 }
 
 TEST(Value, non_continous_envelope)
 {
 	TestCtx ctx;
 	ChainPool<Value>::Scope valuePool(10);
-	ChainPool<Buffer<256>>::Scope bufferPool(10);
+	ChainPool<AudioBuffer>::Scope bufferPool(10);
 	ptr<Envelope> env = ChainPool<Value>::instance().mk2<Envelope>();
 	// :>4:1>4:>3:1>3:>2;
 	env->addSegment(0,4);
@@ -173,21 +173,21 @@ TEST(Value, non_continous_envelope)
 	env->addSegment(0,2);
 
 	ExpBuff exp(64, "  \" 0   @$   (!   \" 0   @$   (!   \" 0   @$   (!   \" 0   @$   (!   \" 0   @$   (!   ! 0   0$   $!   ! 0   0$   $!   ! 0   0$   $!   ! 0   0$   $!   ! 0   0$    !     0    $    !     0    $    !     0    $    !     0    $    !     0    $    !     0    $    !     0    $    !     0    $    !     0    $    !     0    $    !     0    $    !     0   ");
-	ptr<Buffer<256>> got = env->get(0, 64, ctx,nullptr);
+	ptr<AudioBuffer> got = env->get(0, 64, ctx,nullptr);
 	EXPECT_EQ(exp, got);
-	EXPECT_EQ(4.0, got->buff[10]);
-	EXPECT_EQ(3.0, got->buff[20]);
-	EXPECT_EQ(2.0, got->buff[60]);
+	EXPECT_EQ(4.0, got->buff()[10]);
+	EXPECT_EQ(3.0, got->buff()[20]);
+	EXPECT_EQ(2.0, got->buff()[60]);
 }
 
 TEST(Value, oscillator)
 {
 	TestCtx ctx;
 	ChainPool<Value>::Scope valuePool(10);
-	ChainPool<Buffer<256>>::Scope bufferPool(10);
+	ChainPool<AudioBuffer>::Scope bufferPool(10);
 	ptr<Oscillator> osc = ChainPool<Value>::instance().mk2<Oscillator>(440.0, 0.5);
 	ExpBuff exp(64, "     ,+%QST5[T,^VCF./O,$M3XQV]0^7H/L/KX4^SX    _OA3[/EZ#[#XQV]0^\\P2U/MHYCCX5[T,^PL7'/3(QC23\"Q<>]%>]#OMHYCK[S!+6^,=O4OEZ#[+Z^%/N^    O[X4^[Y>@^R^,=O4OO,$M;[:.8Z^%>]#OL+%Q[TR,0VEPL7'/17O0S[:.8X^\\P2U/C';U#Y>@^P^OA3[/@   #^^%/L^7H/L/C';U#[S!+4^VCF./A7O0S[\"Q<<]RLE3)<+%Q[T5[T.^VCF.OO,$M;XQV]2^7H/LOKX4^[X   \"_OA3[OEZ#[+XQV]2^\\P2UOMHYCKX5[T.^PL7'O0  ");
-	ptr<Buffer<256>> got = osc->get(0, 64, ctx,nullptr);
+	ptr<AudioBuffer> got = osc->get(0, 64, ctx,nullptr);
 	EXPECT_EQ(exp, got);
 }
 }

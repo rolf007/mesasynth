@@ -27,7 +27,7 @@ public:
 	}
 	Foo(const Foo&) = delete;
 	ChainPool<Value>::Scope manager;
-	ChainPool<Buffer<256>>::Scope bufferPool;
+	ChainPool<AudioBuffer>::Scope bufferPool;
 	Synthesizer syn;
 	Sequencer seq;
 	unsigned leftOver;
