@@ -19,7 +19,7 @@ public:
 		float sum;
 	};
 	Piano(){}
-	ptr<AudioBuffer> get(unsigned sampleNr, unsigned len, Ctx& ctx, ptr<DataBuffer> data) override;
+	ptr<AudioBuffer> get(unsigned sampleNr, unsigned len, Ctx& ctx, DataBuffer data) override;
 	virtual unsigned size() const override { return sizeof(Data); };
 };
 
@@ -57,7 +57,7 @@ public:
 private:
 	int sample_nr;
 	ChainPool<Note>::Scope notePoolScope_;
-	ChainPool<DataBuffer>::Scope dataPoolScope_;
+	ChainPool<BufferMem<uint8_t, 32>>::Scope dataPoolScope_;
 	Instrument instrument0_;
 	unsigned noteNum_;
 };

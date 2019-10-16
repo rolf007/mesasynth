@@ -11,7 +11,7 @@ public:
 	BufferMem(unsigned size) : size_(size)
 	{
 		if (size > SIZE) {
-			std::cout << "ERROR: Buffer: " << size << " > " << SIZE << "!" << std::endl;
+			std::cout << "ERROR: BufferMem: " << size << " > " << SIZE << "!" << std::endl;
 			exit(-1);
 		}
 	}
@@ -21,13 +21,10 @@ public:
 	T buff_[SIZE];
 };
 
-
-template<unsigned SIZE>
-using Buffer = BufferMem<float, SIZE>;
-
 using AudioBuffer = BufferMem<float, 256>;
 
-using DataBuffer = BufferMem<float, 32>;
+//using DataBuffer = BufferMem<uint8_t, 32>;
+//using DataBuffer = ptr<BufferMem<uint8_t, 32>>;
 
 class Buff {
 public:
@@ -45,4 +42,6 @@ private:
     uint8_t* mem_;
     unsigned size_;
 };
+
+using DataBuffer = Buff;
 #endif

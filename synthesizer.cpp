@@ -42,7 +42,7 @@ void Synthesizer::generate(int16_t* begin, int16_t* end)
 	}
 }
 
-ptr<AudioBuffer> Piano::get(unsigned sampleNr, unsigned len, Ctx& ctx, ptr<DataBuffer> data)
+ptr<AudioBuffer> Piano::get(unsigned sampleNr, unsigned len, Ctx& ctx, DataBuffer data)
 {
 	ptr<AudioBuffer> buff = ChainPool<AudioBuffer>::instance().mk(len);
 	ptr<AudioBuffer> note = ctx.note().value_->get(sampleNr, len, ctx, data);

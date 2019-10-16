@@ -7,7 +7,7 @@ using namespace std;
 
 const unsigned Value::MaxSize = sizeof(Adder);
 
-ValueInstance::ValueInstance(ptr<Value> value) : value_(value), data_(value_ ? ChainPool<DataBuffer>::instance().mk(32) : nullptr)
+ValueInstance::ValueInstance(ptr<Value> value) : value_(value), data_(value_ ? ChainPool<BufferMem<uint8_t, 32>>::instance().mk(32) : nullptr)
 {
 }
 
@@ -15,7 +15,7 @@ Oscillator::Oscillator(float freq, float amp) : freq_(freq), amp_(amp)
 {
 }
 
-ptr<AudioBuffer> Oscillator::get(unsigned sampleNr, unsigned len, Ctx& ctx, ptr<DataBuffer> data)
+ptr<AudioBuffer> Oscillator::get(unsigned sampleNr, unsigned len, Ctx& ctx, DataBuffer data)
 {
 	ptr<AudioBuffer> buff = ChainPool<AudioBuffer>::instance().mk(len);
 	float hz = freq_;
@@ -26,7 +26,7 @@ ptr<AudioBuffer> Oscillator::get(unsigned sampleNr, unsigned len, Ctx& ctx, ptr<
 	return buff;
 }
 
-ptr<AudioBuffer> Envelope::get(unsigned sampleNr, unsigned len, Ctx& ctx, ptr<DataBuffer> data)
+ptr<AudioBuffer> Envelope::get(unsigned sampleNr, unsigned len, Ctx& ctx, DataBuffer data)
 {
 	ptr<AudioBuffer> buff = ChainPool<AudioBuffer>::instance().mk(len);
 	float oldVal = 0.0;
@@ -60,7 +60,7 @@ void Envelope::addSegment(float duration, float value)
 	segments_.push_back(pair<float, float>(duration, value));
 }
 
-ptr<AudioBuffer> Const::get(unsigned sampleNr, unsigned len, Ctx& ctx, ptr<DataBuffer> data)
+ptr<AudioBuffer> Const::get(unsigned sampleNr, unsigned len, Ctx& ctx, DataBuffer data)
 {
 	ptr<AudioBuffer> buff = ChainPool<AudioBuffer>::instance().mk(len);
 	for (unsigned i = 0; i < buff->size(); ++i)
@@ -68,7 +68,7 @@ ptr<AudioBuffer> Const::get(unsigned sampleNr, unsigned len, Ctx& ctx, ptr<DataB
 	return buff;
 }
 
-ptr<AudioBuffer> Adder::get(unsigned sampleNr, unsigned len, Ctx& ctx, ptr<DataBuffer> data)
+ptr<AudioBuffer> Adder::get(unsigned sampleNr, unsigned len, Ctx& ctx, DataBuffer data)
 {
 	ptr<AudioBuffer> buff = ChainPool<AudioBuffer>::instance().mk(len);
 	ptr<AudioBuffer> l = lhs_->get(sampleNr, len, ctx, data);
