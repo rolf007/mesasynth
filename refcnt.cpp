@@ -18,3 +18,7 @@ void ref_cnt_destruct_error(char const* name)
 	exit(0);
 }
 
+void refcnt::destroy()
+{
+	chainPoolBase_->release(this);
+}

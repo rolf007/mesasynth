@@ -4,8 +4,13 @@
 #include <iostream>
 #include <string.h>
 
+class ChainPoolBase {
+public:
+	virtual void release(void* t) = 0;
+};
+
 template<typename T>
-class ChainPool {
+class ChainPool : public ChainPoolBase {
 	static ChainPool<T>* inst;
 public:
 	class Scope {
@@ -81,6 +86,7 @@ public:
 		}
 		freePool_ = f->next;
 		ptr<T> t(new(f)T(args...));
+		t->chainPoolBase_ = this;
 		return t;
 	}
 	template<typename T2, typename ...Args>
@@ -98,10 +104,12 @@ public:
 		}
 		freePool_ = f->next;
 		ptr<T2> t(new(f)T2(args...));
+		t->chainPoolBase_ = this;
 		return t;
 	}
-	void release(T* t)
+	void release(void* p) override
 	{
+		T* t = (T*)p;
         t->~T();
 		F* f = (F*)t;
 		f->next = freePool_;
@@ -116,10 +124,5 @@ private:
 
 template<typename T>
 ChainPool<T>* ChainPool<T>::inst = nullptr;
-
-template<typename C>
-void refcnt<C>::destroy() {
-	ChainPool<C>::instance().release((C*)this);
-}
 
 #endif

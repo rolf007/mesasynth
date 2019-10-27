@@ -20,7 +20,7 @@ private:
 	unsigned noteLengthToSamples(float noteLength) const {
 		return 4*60*sampleRate_*noteLength/bpm4_;
 	}
-	struct Stack : public refcnt<Stack> {
+	struct Stack : public refcnt {
 		static const unsigned MaxSize;
 		Stack(Ittr str, Sequencer&, int oldnote, Modifier legatoModifier, float legato, float volume, float duration, float velocity, float timeToNext);
 		Stack(const Stack& s);

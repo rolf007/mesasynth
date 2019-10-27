@@ -2,38 +2,28 @@
 #define _REFCNT_H__
 #include <typeinfo>
 
-template<typename C>
-class ChainPool;
+class ChainPoolBase;
 
 void null_ptr_error(char const* name);
 void ref_cnt_destruct_error(char const* name);
 
-class refcnt_base {
+class refcnt {
 	mutable unsigned int cnt;
 	template<typename C>
 	friend class ptr;
 protected:
-	refcnt_base() : cnt(0) {}
-	refcnt_base(const refcnt_base&) : cnt(0) {}
-	refcnt_base& operator=(refcnt_base const&) { return *this; }
-	virtual ~refcnt_base() { if (cnt > 1) ref_cnt_destruct_error(typeid(this).name()); }
-public:
-	unsigned int __cnt() const { return cnt; }
-};
-
-template<typename C>
-class refcnt : public refcnt_base {
+	refcnt() : cnt(0) {}
+	refcnt(const refcnt&) : cnt(0) {}
+	refcnt& operator=(refcnt const&) { return *this; }
+	virtual ~refcnt() { if (cnt > 1) ref_cnt_destruct_error(typeid(this).name()); }
 public:
 	void destroy();
-};
-
-class ptr_base {
-public:
-	virtual ~ptr_base() {}
+	unsigned int __cnt() const { return cnt; }
+	ChainPoolBase* chainPoolBase_;
 };
 
 template<class C>
-class ptr : public ptr_base {
+class ptr {
 	C* p;
 	void check_null() const { if (!p) null_ptr_error(typeid(p).name()); }
 	void release(C* p) {

@@ -4,44 +4,34 @@
 #include "refcnt.h"
 #include <iostream>
 
-template<typename T, unsigned SIZE>
-class BufferMem : public refcnt<BufferMem<T, SIZE>> {
+template<typename T>
+class BufferMem : public refcnt {
 public:
-	static const unsigned MaxSize = sizeof(BufferMem);
-	BufferMem(unsigned size) : size_(size)
+	explicit BufferMem(unsigned size) : size_(size)
 	{
-		if (size > SIZE) {
-			std::cout << "ERROR: BufferMem: " << size << " > " << SIZE << "!" << std::endl;
-			exit(-1);
-		}
+		//if (size > SIZE) {
+		//	std::cout << "ERROR: BufferMem: " << size << " > " << SIZE << "!" << std::endl;
+		//	exit(-1);
+		//}
 	}
 	unsigned size() const { return size_; }
 	T* buff() { return buff_; }
 	unsigned size_;
-	T buff_[SIZE];
+	T buff_[0];
 };
 
-using AudioBuffer = BufferMem<float, 256>;
-
-//using DataBuffer = BufferMem<uint8_t, 32>;
-//using DataBuffer = ptr<BufferMem<uint8_t, 32>>;
-
-class Buff {
+class AudioBuffer : public BufferMem<float>
+{
 public:
-    template<typename POOL>
-    static Buff mk(unsigned size) {
-        auto b(POOL::instance().mk(size));
-        return Buff(b, b->buff(), b->size());
-    }
-    const uint8_t* get() const { return mem_; }
-    unsigned size() const { return size_; }
-    uint8_t* get() { return mem_; }
-private:
-    Buff(ptr_base base, uint8_t* mem, unsigned size) : base_(base), mem_(mem), size_(size) {}
-    ptr_base base_;
-    uint8_t* mem_;
-    unsigned size_;
+	static const unsigned MaxSize = sizeof(BufferMem<float>) + sizeof(float)*256;
+	explicit AudioBuffer(unsigned size) : BufferMem<float>(size) {}
 };
 
-using DataBuffer = Buff;
+class DataBuffer : public BufferMem<uint8_t>
+{
+public:
+	static const unsigned MaxSize = sizeof(BufferMem<uint8_t>) + sizeof(uint8_t)*32;
+	explicit DataBuffer(unsigned size) : BufferMem<uint8_t>(size) {}
+};
+
 #endif

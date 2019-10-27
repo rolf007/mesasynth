@@ -3,7 +3,7 @@
 
 using namespace std;
 namespace {
-class Element : public refcnt<Element> {
+class Element : public refcnt {
 public:
 	static const unsigned MaxSize;
 	Element(unsigned a, unsigned b) :a(a), b(b) {}
@@ -50,7 +50,7 @@ TEST(ChainPool, mixed)
 	EXPECT_EQ(nullptr, ChainPool<Element>::instance().mk(11, 12));
 }
 
-class Base : public refcnt<Base> {
+class Base : public refcnt {
 public:
 	static const unsigned MaxSize;
 	static unsigned deletes;
@@ -111,11 +111,11 @@ TEST(ChainPool, polymorphism)
 
 TEST(ChainPool, buffer2)
 {
-	ChainPool<BufferMem<uint8_t, 32>>::Scope scope(4);
+	ChainPool<DataBuffer>::Scope scope(4);
 	struct Dummy { float a, b; };
-	using DummyPool = ChainPool<BufferMem<uint8_t, 32>>;
-	Buff buff = Buff::mk<DummyPool>(5); // make 5 chars from DummyPool
-	Dummy* dummy = (Dummy*)buff.get();
+	using DummyPool = ChainPool<DataBuffer>;
+	ptr<DataBuffer> buff = ChainPool<DataBuffer>::instance().mk(32);
+	Dummy* dummy = (Dummy*)buff->buff();
 	dummy->a = 2.3;
 }
 }
