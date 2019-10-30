@@ -5,9 +5,47 @@
 #include <gtest/gtest.h>
 
 using namespace std;
+using namespace testing;
 namespace {
  
 #define CHECK(x) { SCOPED_TRACE(""); x; }
+
+AssertionResult assertValue(const string expStr, const string gotStr, const ptr<Value>& exp, const ptr<Value>& got) {
+	if (ptr<Oscillator> e = exp.cast<Oscillator>()) {
+		if (ptr<Oscillator> g = got.cast<Oscillator>()) {
+			AssertionResult freqEq = assertValue(expStr+"<Oscillator>.freq", gotStr+"<Oscillator>.freq", e->freq(), g->freq());
+			if (!freqEq)
+				return freqEq;
+			return AssertionSuccess();
+		}
+	} else if (ptr<Envelope> e = exp.cast<Envelope>()) {
+		if (ptr<Envelope> g = got.cast<Envelope>()) {
+			return AssertionSuccess();
+		}
+	} else if (ptr<Adder> e = exp.cast<Adder>()) {
+		if (ptr<Adder> g = got.cast<Adder>()) {
+			AssertionResult lhsEq = assertValue(expStr+"<Adder>.lhs", gotStr+"<Adder>.lhs", e->lhs(), g->lhs());
+			if (!lhsEq)
+				return lhsEq;
+			AssertionResult rhsEq = assertValue(expStr+"<Adder>.rhs", gotStr+"<Adder>.rhs", e->rhs(), g->rhs());
+			if (!rhsEq)
+				return rhsEq;
+			return AssertionSuccess();
+		}
+	} else if (ptr<Const> e = exp.cast<Const>()) {
+		if (ptr<Const> g = got.cast<Const>()) {
+			if (e->value() == g->value()) // <-- this should be float-compare
+				return AssertionSuccess();
+			else {
+				return AssertionFailure() << expStr+"<Const>.value" << " != " << gotStr+"<Const>.value" << ":" << e->value() << " != " << g->value();
+			}
+		}
+	}
+
+	return AssertionFailure() << expStr << " and " << gotStr << " are not the same type";
+}
+
+#define EXPECT_VALUE_EQ(exp, got) { EXPECT_PRED_FORMAT2(assertValue, exp, got); }
 
 void testParserInt(const char* str, int exp, char end=0)
 {
@@ -143,6 +181,25 @@ void testParserNoteProperties(const char* str, Parsers<const char*>::Property ex
 		EXPECT_FLOAT_EQ(expValue, valuePtr->get(0,1,ctx,nullptr)->buff()[0]);
 }
 
+void testParserNoteProperties2(const char* str, Parsers<const char*>::Property expProperty, Parsers<const char*>::Modifier expModifier, ptr<Value> expValue, char end=0)
+{
+	TestCtx ctx;
+	const char* tmp = str;
+	Parsers<const char*>::Property property;
+	Parsers<const char*>::Modifier modifier;
+	ptr<Value> valuePtr;
+	float value;
+	EXPECT_TRUE(Parsers<const char*>::parseNoteProperties(tmp, property, modifier, valuePtr, value));
+	EXPECT_EQ(end, *tmp);
+	EXPECT_EQ(expProperty, property);
+	EXPECT_EQ(expModifier, modifier);
+	if (!valuePtr)
+		cout << "ERrror" << endl;
+	else {
+		EXPECT_VALUE_EQ(expValue, valuePtr);
+	}
+}
+
 void testParserNotePropertiesFail(const char* str)
 {
 	const char* tmp = str;
@@ -274,6 +331,11 @@ TEST(Parse, NoteProperties)
 	CHECK(testParserNoteProperties("?*~5", ParserEnums::Note, ParserEnums::Mul, osc, '5'));
 	CHECK(testParserNoteProperties(":5", ParserEnums::Note, ParserEnums::Add, env, '5'));
 	CHECK(testParserNoteProperties("~5", ParserEnums::Note, ParserEnums::Add, osc, '5'));
+
+	ptr<Value> freq0 = ChainPool<Value>::instance().mk2<Const>(440.0);
+	ptr<Value> osc1 = ChainPool<Value>::instance().mk2<Oscillator>(freq0,.9);
+	//Osc::mk(Num::mk(440), .9);
+	CHECK(testParserNoteProperties2("~5", ParserEnums::Note, ParserEnums::Add, osc1, '5'));
 }
 
 TEST(Parse, WithMacro)

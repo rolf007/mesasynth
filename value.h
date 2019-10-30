@@ -36,11 +36,12 @@ public:
 	class Data {
 		float sum;
 	};
-	Oscillator(float freq, float amp);
+	Oscillator(ptr<Value> freq, float amp);
 	ptr<AudioBuffer> get(unsigned sampleNr, unsigned len, Ctx& ctx, ptr<DataBuffer> data) override;
 	virtual unsigned size() const override { return sizeof(Data); };
+	ptr<Value> freq() const { return freq_; }
 private:
-	float freq_;
+	ptr<Value> freq_;
 	float amp_;
 };
 
@@ -58,6 +59,7 @@ public:
 	Const(float value) : value_(value) {}
 	ptr<AudioBuffer> get(unsigned sampleNr, unsigned len, Ctx& ctx, ptr<DataBuffer> data) override;
 	virtual unsigned size() const override { return 0; };
+	float value() const { return value_; }
 private:
 	float value_;
 };
@@ -67,6 +69,8 @@ public:
 	Adder(ptr<Value> lhs, ptr<Value> rhs) : lhs_(lhs), rhs_(rhs) {}
 	ptr<AudioBuffer> get(unsigned sampleNr, unsigned len, Ctx& ctx, ptr<DataBuffer> data) override;
 	virtual unsigned size() const override { return lhs_->size() + rhs_->size(); };
+	ptr<Value> lhs() const { return lhs_; }
+	ptr<Value> rhs() const { return rhs_; }
 private:
 	ptr<Value> lhs_;
 	ptr<Value> rhs_;

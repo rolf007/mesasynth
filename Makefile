@@ -18,9 +18,10 @@ TEST_SOURCES += value_test.cpp
 
 TEST_OBJS = $(TEST_SOURCES:.cpp=.o)
 OBJS = $(SOURCES:.cpp=.o)
+MAIN_OBJ = main.o
 
-main: main.o ${OBJS}
-	g++ main.o ${OBJS} -lSDL -L/usr/lib64 -o $@
+main: ${MAIN_OBJ} ${OBJS}
+	g++ ${MAIN_OBJ} ${OBJS} -lSDL -L/usr/lib64 -o $@
 
 gtest: ${OBJS} ${TEST_OBJS}
 	g++ -lgtest -lgtest_main ${OBJS} ${TEST_OBJS} -o $@
@@ -48,4 +49,4 @@ $(DEPFILES):
 include $(wildcard $(DEPFILES))
 
 clean:
-	rm ${OBJS} ${TEST_OBJS} gtest main
+	rm ${OBJS} ${TEST_OBJS} ${MAIN_OBJ} gtest main

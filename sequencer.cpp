@@ -282,9 +282,11 @@ bool Sequencer::Stack::parse()
 	apply(legatoModifier_, legato_, noteLength, noteLength);
 	ptr<Value> notev = ChainPool<Value>::instance().mk2<Const>(note);
 	ptr<Value> volumev = ChainPool<Value>::instance().mk2<Const>(volume);
-	ptr<Value> vibr = ChainPool<Value>::instance().mk2<Oscillator>(4,.9);
+	ptr<Value> freq0   = ChainPool<Value>::instance().mk2<Const>(4);
+	ptr<Value> freq1   = ChainPool<Value>::instance().mk2<Const>(3);
+	ptr<Value> vibr = ChainPool<Value>::instance().mk2<Oscillator>(freq0,.9);
 	ptr<Value> add  = ChainPool<Value>::instance().mk2<Adder>(notev, vibr);
-	ptr<Value> vibr2= ChainPool<Value>::instance().mk2<Oscillator>(3,.5);
+	ptr<Value> vibr2= ChainPool<Value>::instance().mk2<Oscillator>(freq1,.5);
 	ptr<Value> add2 = ChainPool<Value>::instance().mk2<Adder>(volumev, vibr2);
 	seq_.syn_.playNote(seq_.noteLengthToSamples(noteLength), velocity, add, add2);
 //---------------

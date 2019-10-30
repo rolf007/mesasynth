@@ -11,14 +11,15 @@ ValueInstance::ValueInstance(ptr<Value> value) : value_(value), data_(value_ ? C
 {
 }
 
-Oscillator::Oscillator(float freq, float amp) : freq_(freq), amp_(amp)
+Oscillator::Oscillator(ptr<Value> freq, float amp) : freq_(freq), amp_(amp)
 {
 }
 
 ptr<AudioBuffer> Oscillator::get(unsigned sampleNr, unsigned len, Ctx& ctx, ptr<DataBuffer> data)
 {
 	ptr<AudioBuffer> buff = ChainPool<AudioBuffer>::instance().mk(len);
-	float hz = freq_;
+	ptr<AudioBuffer> freq = freq_->get(sampleNr, len, ctx, data);
+	float hz = freq->buff()[0];
 	for(unsigned i = 0; i < buff->size_; ++i) {
 		double time = (double)(sampleNr+i) / (double)ctx.sampleRate();
 		buff->buff()[i]  = amp_ * sin(2.0f * M_PI * hz * time);

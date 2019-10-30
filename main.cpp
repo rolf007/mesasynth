@@ -21,7 +21,7 @@ const char* david = "$.7A{(c2,f2,g2)}@@@@B{(c2,e2,g2)}@@@@C{(c2,d2,g2)}@@@@BBBB"
 const char* scala = "$2cdefgabc";
 class Foo {
 public:
-	Foo(int sampleRate) : manager(60), bufferPool(10), syn(), seq(syn, 120.0, sampleRate), leftOver(0)
+	Foo(int sampleRate) : manager(80), bufferPool(10), syn(), seq(syn, 120.0, sampleRate), leftOver(0)
 	{
 		seq.addTrack(scala);
 	}
@@ -86,7 +86,7 @@ int main(int argc, char *argv[])
 	while (!done) {
     	SDL_Delay(100); // wait while sound is playing
 	}
-	cout << "DONE!" << endl;
+	cout << "DONE..." << endl;
     SDL_Delay(1000); // wait while sound is playing
     SDL_PauseAudio(1); // stop playing sound
 

@@ -185,7 +185,8 @@ TEST(Value, oscillator)
 	TestCtx ctx;
 	ChainPool<Value>::Scope valuePool(10);
 	ChainPool<AudioBuffer>::Scope bufferPool(10);
-	ptr<Oscillator> osc = ChainPool<Value>::instance().mk2<Oscillator>(440.0, 0.5);
+	ptr<Value> freq0   = ChainPool<Value>::instance().mk2<Const>(440.0);
+	ptr<Oscillator> osc = ChainPool<Value>::instance().mk2<Oscillator>(freq0, 0.5);
 	ExpBuff exp(64, "     ,+%QST5[T,^VCF./O,$M3XQV]0^7H/L/KX4^SX    _OA3[/EZ#[#XQV]0^\\P2U/MHYCCX5[T,^PL7'/3(QC23\"Q<>]%>]#OMHYCK[S!+6^,=O4OEZ#[+Z^%/N^    O[X4^[Y>@^R^,=O4OO,$M;[:.8Z^%>]#OL+%Q[TR,0VEPL7'/17O0S[:.8X^\\P2U/C';U#Y>@^P^OA3[/@   #^^%/L^7H/L/C';U#[S!+4^VCF./A7O0S[\"Q<<]RLE3)<+%Q[T5[T.^VCF.OO,$M;XQV]2^7H/LOKX4^[X   \"_OA3[OEZ#[+XQV]2^\\P2UOMHYCKX5[T.^PL7'O0  ");
 	ptr<AudioBuffer> got = osc->get(0, 64, ctx,nullptr);
 	EXPECT_EQ(exp, got);

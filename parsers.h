@@ -244,7 +244,8 @@ bool Parsers<T>::parseValue(T& str, ptr<Value>& valuePtr)
 	T tmp = str;
 	if (*tmp == '~') {
 		std::cout << "mkOsc" << std::endl;
-		valuePtr = ChainPool<Value>::instance().mk2<Oscillator>(440.0, 0.5);
+		ptr<Value> freq0   = ChainPool<Value>::instance().mk2<Const>(440.0);
+		valuePtr = ChainPool<Value>::instance().mk2<Oscillator>(freq0, 0.5);
 		++tmp;
 		str = tmp;
 		return true;

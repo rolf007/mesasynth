@@ -63,7 +63,7 @@ public:
 	}
 	template<class C2> ptr<C2> scast() const { return ptr<C2>(static_cast<C2*>(p)); }
 	C* operator->() const { check_null(); return p; }
-	C& operator*() const { check_null(); return *p; }
+	const C& operator*() const { check_null(); return *p; }
 	operator const void*() const { return p; }
 	bool operator==(const ptr& b) const { return p == b.p; }
 	bool operator!=(const ptr& b) const { return p != b.p; }
