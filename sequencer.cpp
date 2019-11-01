@@ -255,28 +255,30 @@ bool Sequencer::Stack::parse()
 	ptr<Value> volumeValuePtr = nullptr;
 	ptr<Value> noteValuePtr = nullptr;
 	Property property;
-	while(parseNoteProperties(ittr_, property, modifier, valuePtr, value)) {
-		if (!valuePtr)
-			cout << "found note property value: " << property << ", " << prnt(modifier) << ", " << value << endl;
-		else
+	while(true) {
+		if (parseNotePropertiesSimple(ittr_, property, modifier, value)) {
 			cout << "found note property valuePtr: " << property << ", " << prnt(modifier) << ", " << valuePtr << endl;
-		if (property == Legato) {
-			legatoModifier_ = modifier;
-			legato_ = value;
-		} else if (property == Velocity)
-			apply(modifier, value, velocity_, velocity);
-		else if (property == Volume)
-			if (!valuePtr)
-				apply(modifier, value, volume_, volume);
+			if (property == Legato) {
+				legatoModifier_ = modifier;
+				legato_ = value;
+			} else if (property == Velocity)
+				apply(modifier, value, velocity_, velocity);
+		} else if (parseNotePropertiesComplex(ittr_, property, modifier, valuePtr)) {
+			cout << "found note property value: " << property << ", " << prnt(modifier) << ", " << value << endl;
+			if (property == Volume)
+				if (!valuePtr)
+					apply(modifier, value, volume_, volume);
+				else
+					volumeValuePtr = valuePtr;
+			else if (property == Note)
+				if (!valuePtr)
+					apply(modifier, value, note, note);
+				else
+					noteValuePtr = valuePtr;
 			else
-				volumeValuePtr = valuePtr;
-		else if (property == Note)
-			if (!valuePtr)
-				apply(modifier, value, note, note);
-			else
-				noteValuePtr = valuePtr;
-		else
-			cout << "unknown property in note section " << property << endl;
+				cout << "unknown property in note section " << property << endl;
+		} else
+			break;
 	}
 	float noteLength = duration;
 	apply(legatoModifier_, legato_, noteLength, noteLength);

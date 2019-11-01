@@ -11,6 +11,11 @@ ValueInstance::ValueInstance(ptr<Value> value) : value_(value), data_(value_ ? C
 {
 }
 
+ptr<Oscillator> Oscillator::mk(ptr<Value> freq, float amp)
+{
+	return ChainPool<Value>::instance().mk2<Oscillator>(freq, amp);
+}
+
 Oscillator::Oscillator(ptr<Value> freq, float amp) : freq_(freq), amp_(amp)
 {
 }
@@ -67,6 +72,11 @@ ptr<AudioBuffer> Const::get(unsigned sampleNr, unsigned len, Ctx& ctx, ptr<DataB
 	for (unsigned i = 0; i < buff->size(); ++i)
 		buff->buff()[i] = value_;
 	return buff;
+}
+
+ptr<Const> Const::mk(float value)
+{
+	return ChainPool<Value>::instance().mk2<Const>(value);
 }
 
 ptr<AudioBuffer> Adder::get(unsigned sampleNr, unsigned len, Ctx& ctx, ptr<DataBuffer> data)

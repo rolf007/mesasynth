@@ -192,3 +192,17 @@ TEST(Value, oscillator)
 	EXPECT_EQ(exp, got);
 }
 }
+
+class Segs {
+public:
+	Segs& add(float, float) { return *this; }
+};
+class Env {
+public:
+	Env(Segs& segs) : segs_(segs) {}
+	Segs segs_;
+};
+TEST(Value, experimental_env_construction)
+{
+	Env env(Segs().add(8,8));
+}

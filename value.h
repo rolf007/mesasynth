@@ -40,6 +40,7 @@ public:
 	ptr<AudioBuffer> get(unsigned sampleNr, unsigned len, Ctx& ctx, ptr<DataBuffer> data) override;
 	virtual unsigned size() const override { return sizeof(Data); };
 	ptr<Value> freq() const { return freq_; }
+	ptr<Oscillator> static mk(ptr<Value> freq, float amp);
 private:
 	ptr<Value> freq_;
 	float amp_;
@@ -60,6 +61,7 @@ public:
 	ptr<AudioBuffer> get(unsigned sampleNr, unsigned len, Ctx& ctx, ptr<DataBuffer> data) override;
 	virtual unsigned size() const override { return 0; };
 	float value() const { return value_; }
+	ptr<Const> static mk(float value);
 private:
 	float value_;
 };

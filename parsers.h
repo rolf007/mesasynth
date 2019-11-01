@@ -24,7 +24,8 @@ public:
 	static bool parseDefaultProperty(T& str, Property& property, Modifier& modifier, float& value);
 	static bool parseEnvelope(T& str, ptr<Value> valuePtr);
 	static bool parseValue(T& str, ptr<Value>& valuePtr);
-	static bool parseNoteProperties(T& str, Property& property, Modifier& modifier, ptr<Value>& valuePtr, float& value);
+	static bool parseNotePropertiesSimple(T& str, Property& property, Modifier& modifier, float& value);
+	static bool parseNotePropertiesComplex(T& str, Property& property, Modifier& modifier, ptr<Value>& valuePtr);
 };
 
 template<typename T>
@@ -191,11 +192,11 @@ bool Parsers<T>::parseNote(T& str, int oldNote, float& note)
 				return false;
 			++tmp;
 		}
-	} 
+	}
 	while (*tmp == '#') {
 		++note;
 		++tmp;
-	} 
+	}
 	while (*tmp == '<') {
 		--note;
 		++tmp;
@@ -259,17 +260,17 @@ bool Parsers<T>::parseValue(T& str, ptr<Value>& valuePtr)
 		str = tmp;
 		return true;
 	}
-	return false;
-//	float value;
-//	if (!parseFloatOrFraction(tmp, value))
-//		return false;
-//	valueId = ChainPool<Value>::instance().mk<Const>(value);
-//	str = tmp;
-//	return true;
+	float value;
+	if (!parseFloatOrFraction(tmp, value))
+		return false;
+	valuePtr = ChainPool<Value>::instance().mk2<Const>(value);
+	str = tmp;
+	return true;
 }
 
+// rename to parseLegato ?
 template<typename T>
-bool Parsers<T>::parseNoteProperties(T& str, Property& property, Modifier& modifier, ptr<Value>& valuePtr, float& value)
+bool Parsers<T>::parseNotePropertiesSimple(T& str, Property& property, Modifier& modifier, float& value)
 {
 	T tmp = str;
 	if (*tmp == '%') {
@@ -278,7 +279,23 @@ bool Parsers<T>::parseNoteProperties(T& str, Property& property, Modifier& modif
 	} else if (*tmp == '^') {
 		++tmp;
 		property = Parsers::Velocity;
-	} else if (*tmp == '&') {
+	} else
+		return false;
+
+	if (!parseModifier(tmp, modifier))
+		modifier = Parsers::Set;
+	if (parseFloatOrFraction(tmp, value)) {
+		str = tmp;
+		return true;
+	}
+	return false;
+}
+
+template<typename T>
+bool Parsers<T>::parseNotePropertiesComplex(T& str, Property& property, Modifier& modifier, ptr<Value>& valuePtr)
+{
+	T tmp = str;
+	if (*tmp == '&') {
 		++tmp;
 		property = Parsers::Volume;
 	} else if (*tmp == '?') {
@@ -293,13 +310,6 @@ bool Parsers<T>::parseNoteProperties(T& str, Property& property, Modifier& modif
 		return false;
 	if (!parseModifier(tmp, modifier))
 		modifier = Parsers::Set;
-	if (parseFloatOrFraction(tmp, value)) {
-		str = tmp;
-		valuePtr = nullptr;
-		return true;
-	}
-	if (property == Parsers::Legato || property == Parsers::Velocity)
-		return false;
 	if (!parseValue(tmp, valuePtr))
 		return false;
 	str = tmp;

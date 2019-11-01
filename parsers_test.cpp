@@ -163,22 +163,31 @@ class TestCtx : public Ctx {
 	float sampleRate() const override { return 1.0; }
 };
 
-void testParserNoteProperties(const char* str, Parsers<const char*>::Property expProperty, Parsers<const char*>::Modifier expModifier, float expValue, char end=0)
+void testParserNotePropertiesSimple(const char* str, Parsers<const char*>::Property expProperty, Parsers<const char*>::Modifier expModifier, float expValue, char end=0)
+{
+	const char* tmp = str;
+	Parsers<const char*>::Property property;
+	Parsers<const char*>::Modifier modifier;
+	float value;
+	EXPECT_TRUE(Parsers<const char*>::parseNotePropertiesSimple(tmp, property, modifier, value));
+	EXPECT_EQ(end, *tmp);
+	EXPECT_EQ(expProperty, property);
+	EXPECT_EQ(expModifier, modifier);
+	EXPECT_FLOAT_EQ(expValue, value);
+}
+
+void testParserNotePropertiesComplex(const char* str, Parsers<const char*>::Property expProperty, Parsers<const char*>::Modifier expModifier, float expValue, char end=0)
 {
 	TestCtx ctx;
 	const char* tmp = str;
 	Parsers<const char*>::Property property;
 	Parsers<const char*>::Modifier modifier;
 	ptr<Value> valuePtr;
-	float value;
-	EXPECT_TRUE(Parsers<const char*>::parseNoteProperties(tmp, property, modifier, valuePtr, value));
+	EXPECT_TRUE(Parsers<const char*>::parseNotePropertiesComplex(tmp, property, modifier, valuePtr));
 	EXPECT_EQ(end, *tmp);
 	EXPECT_EQ(expProperty, property);
 	EXPECT_EQ(expModifier, modifier);
-	if (!valuePtr)
-		EXPECT_FLOAT_EQ(expValue, value);
-	else
-		EXPECT_FLOAT_EQ(expValue, valuePtr->get(0,1,ctx,nullptr)->buff()[0]);
+	EXPECT_FLOAT_EQ(expValue, valuePtr->get(0,1,ctx,nullptr)->buff()[0]);
 }
 
 void testParserNoteProperties2(const char* str, Parsers<const char*>::Property expProperty, Parsers<const char*>::Modifier expModifier, ptr<Value> expValue, char end=0)
@@ -188,16 +197,11 @@ void testParserNoteProperties2(const char* str, Parsers<const char*>::Property e
 	Parsers<const char*>::Property property;
 	Parsers<const char*>::Modifier modifier;
 	ptr<Value> valuePtr;
-	float value;
-	EXPECT_TRUE(Parsers<const char*>::parseNoteProperties(tmp, property, modifier, valuePtr, value));
+	EXPECT_TRUE(Parsers<const char*>::parseNotePropertiesComplex(tmp, property, modifier, valuePtr));
 	EXPECT_EQ(end, *tmp);
 	EXPECT_EQ(expProperty, property);
 	EXPECT_EQ(expModifier, modifier);
-	if (!valuePtr)
-		cout << "ERrror" << endl;
-	else {
-		EXPECT_VALUE_EQ(expValue, valuePtr);
-	}
+	EXPECT_VALUE_EQ(expValue, valuePtr);
 }
 
 void testParserNotePropertiesFail(const char* str)
@@ -207,7 +211,8 @@ void testParserNotePropertiesFail(const char* str)
 	Parsers<const char*>::Modifier modifier;
 	ptr<Value> valuePtr;
 	float value;
-	EXPECT_FALSE(Parsers<const char*>::parseNoteProperties(tmp, property, modifier, valuePtr, value));
+	EXPECT_FALSE(Parsers<const char*>::parseNotePropertiesSimple(tmp, property, modifier, value));
+	EXPECT_FALSE(Parsers<const char*>::parseNotePropertiesComplex(tmp, property, modifier, valuePtr));
 	EXPECT_EQ(str, tmp);
 }
 
@@ -307,35 +312,32 @@ TEST(Parse, NoteProperties)
 	ChainPool<AudioBuffer>::Scope scopeBuffer(10);
 	float osc = 0.0;
 	float env = 92.0;
-	CHECK(testParserNoteProperties("%.8", ParserEnums::Legato, ParserEnums::Set, .8));
-	CHECK(testParserNoteProperties("^*4/5", ParserEnums::Velocity, ParserEnums::Mul, .8));
-	CHECK(testParserNoteProperties("&+0.4/0.5", ParserEnums::Volume, ParserEnums::Add, .8));
-	CHECK(testParserNoteProperties("?0.5", ParserEnums::Note, ParserEnums::Set, .5));
-	CHECK(testParserNoteProperties("?*2/5", ParserEnums::Note, ParserEnums::Mul, .4));
-	CHECK(testParserNoteProperties("?+5.", ParserEnums::Note, ParserEnums::Add, 5.0));
+	CHECK(testParserNotePropertiesSimple("%.8", ParserEnums::Legato, ParserEnums::Set, .8));
+	CHECK(testParserNotePropertiesSimple("^*4/5", ParserEnums::Velocity, ParserEnums::Mul, .8));
+	CHECK(testParserNotePropertiesComplex("&+0.4/0.5", ParserEnums::Volume, ParserEnums::Add, .8));
+	CHECK(testParserNotePropertiesComplex("?0.5", ParserEnums::Note, ParserEnums::Set, .5));
+	CHECK(testParserNotePropertiesComplex("?*2/5", ParserEnums::Note, ParserEnums::Mul, .4));
+	CHECK(testParserNotePropertiesComplex("?+5.", ParserEnums::Note, ParserEnums::Add, 5.0));
 	CHECK(testParserNotePropertiesFail("%:5"));
 	CHECK(testParserNotePropertiesFail("^:5"));
 	CHECK(testParserNotePropertiesFail("%~5"));
 	CHECK(testParserNotePropertiesFail("^~5"));
-	CHECK(testParserNoteProperties("&:5", ParserEnums::Volume, ParserEnums::Set, env, '5'));
-	CHECK(testParserNoteProperties("?:5", ParserEnums::Note, ParserEnums::Set, env, '5'));
-	CHECK(testParserNoteProperties("&+:5", ParserEnums::Volume, ParserEnums::Add, env, '5'));
-	CHECK(testParserNoteProperties("?+:5", ParserEnums::Note, ParserEnums::Add, env, '5'));
-	CHECK(testParserNoteProperties("&*:5", ParserEnums::Volume, ParserEnums::Mul, env, '5'));
-	CHECK(testParserNoteProperties("?*:5", ParserEnums::Note, ParserEnums::Mul, env, '5'));
-	CHECK(testParserNoteProperties("&~5", ParserEnums::Volume, ParserEnums::Set, osc, '5'));
-	CHECK(testParserNoteProperties("?~5", ParserEnums::Note, ParserEnums::Set, osc, '5'));
-	CHECK(testParserNoteProperties("&+~5", ParserEnums::Volume, ParserEnums::Add, osc, '5'));
-	CHECK(testParserNoteProperties("?+~5", ParserEnums::Note, ParserEnums::Add, osc, '5'));
-	CHECK(testParserNoteProperties("&*~5", ParserEnums::Volume, ParserEnums::Mul, osc, '5'));
-	CHECK(testParserNoteProperties("?*~5", ParserEnums::Note, ParserEnums::Mul, osc, '5'));
-	CHECK(testParserNoteProperties(":5", ParserEnums::Note, ParserEnums::Add, env, '5'));
-	CHECK(testParserNoteProperties("~5", ParserEnums::Note, ParserEnums::Add, osc, '5'));
+	CHECK(testParserNotePropertiesComplex("&:5", ParserEnums::Volume, ParserEnums::Set, env, '5'));
+	CHECK(testParserNotePropertiesComplex("?:5", ParserEnums::Note, ParserEnums::Set, env, '5'));
+	CHECK(testParserNotePropertiesComplex("&+:5", ParserEnums::Volume, ParserEnums::Add, env, '5'));
+	CHECK(testParserNotePropertiesComplex("?+:5", ParserEnums::Note, ParserEnums::Add, env, '5'));
+	CHECK(testParserNotePropertiesComplex("&*:5", ParserEnums::Volume, ParserEnums::Mul, env, '5'));
+	CHECK(testParserNotePropertiesComplex("?*:5", ParserEnums::Note, ParserEnums::Mul, env, '5'));
+	CHECK(testParserNotePropertiesComplex("&~5", ParserEnums::Volume, ParserEnums::Set, osc, '5'));
+	CHECK(testParserNotePropertiesComplex("?~5", ParserEnums::Note, ParserEnums::Set, osc, '5'));
+	CHECK(testParserNotePropertiesComplex("&+~5", ParserEnums::Volume, ParserEnums::Add, osc, '5'));
+	CHECK(testParserNotePropertiesComplex("?+~5", ParserEnums::Note, ParserEnums::Add, osc, '5'));
+	CHECK(testParserNotePropertiesComplex("&*~5", ParserEnums::Volume, ParserEnums::Mul, osc, '5'));
+	CHECK(testParserNotePropertiesComplex("?*~5", ParserEnums::Note, ParserEnums::Mul, osc, '5'));
+	CHECK(testParserNotePropertiesComplex(":5", ParserEnums::Note, ParserEnums::Add, env, '5'));
+	CHECK(testParserNotePropertiesComplex("~5", ParserEnums::Note, ParserEnums::Add, osc, '5'));
 
-	ptr<Value> freq0 = ChainPool<Value>::instance().mk2<Const>(440.0);
-	ptr<Value> osc1 = ChainPool<Value>::instance().mk2<Oscillator>(freq0,.9);
-	//Osc::mk(Num::mk(440), .9);
-	CHECK(testParserNoteProperties2("~5", ParserEnums::Note, ParserEnums::Add, osc1, '5'));
+	CHECK(testParserNoteProperties2("~5", ParserEnums::Note, ParserEnums::Add, Oscillator::mk(Const::mk(440.0),.9), '5'));
 }
 
 TEST(Parse, WithMacro)
