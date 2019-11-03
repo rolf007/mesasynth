@@ -40,7 +40,7 @@ public:
 	ptr<AudioBuffer> get(unsigned sampleNr, unsigned len, Ctx& ctx, ptr<DataBuffer> data) override;
 	virtual unsigned size() const override { return sizeof(Data); };
 	ptr<Value> freq() const { return freq_; }
-	ptr<Oscillator> static mk(ptr<Value> freq, float amp);
+	static ptr<Oscillator> mk(ptr<Value> freq, float amp);
 private:
 	ptr<Value> freq_;
 	float amp_;
@@ -48,11 +48,20 @@ private:
 
 class Envelope : public Value {
 public:
-	Envelope() {}
+	class Segs {
+	public:
+		void add(float duration, float value);
+		const std::pair<float, float>& operator[](unsigned i) const { return segments_[i]; }
+		unsigned size() const { return segments_.size(); }
+	private:
+		std::vector<std::pair<float, float>> segments_;
+	};
+	Envelope(Segs& segs) : segments_(segs) {}
 	ptr<AudioBuffer> get(unsigned sampleNr, unsigned len, Ctx& ctx, ptr<DataBuffer> data) override;
-	void addSegment(float duration, float value);
-	std::vector<std::pair<float, float>> segments_;
 	virtual unsigned size() const override { return 0; };
+	static ptr<Envelope> mk(Segs& segs);
+private:
+	Segs segments_;
 };
 
 class Const : public Value {
@@ -61,7 +70,7 @@ public:
 	ptr<AudioBuffer> get(unsigned sampleNr, unsigned len, Ctx& ctx, ptr<DataBuffer> data) override;
 	virtual unsigned size() const override { return 0; };
 	float value() const { return value_; }
-	ptr<Const> static mk(float value);
+	static ptr<Const> mk(float value);
 private:
 	float value_;
 };

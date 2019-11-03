@@ -245,18 +245,26 @@ bool Parsers<T>::parseValue(T& str, ptr<Value>& valuePtr)
 	T tmp = str;
 	if (*tmp == '~') {
 		std::cout << "mkOsc" << std::endl;
-		ptr<Value> freq0   = ChainPool<Value>::instance().mk2<Const>(440.0);
-		valuePtr = ChainPool<Value>::instance().mk2<Oscillator>(freq0, 0.5);
 		++tmp;
+		ptr<Value> freqPtr;
+		if (!parseValue(tmp, freqPtr))
+			return false;
+		valuePtr = ChainPool<Value>::instance().mk2<Oscillator>(freqPtr, 0.5);
 		str = tmp;
 		return true;
 	} else if (*tmp == ':') {
 		std::cout << "mkEnv" << std::endl;
-		ptr<Envelope> env = ChainPool<Value>::instance().mk2<Envelope>();
-		env->addSegment(0,92);
-		env->addSegment(10,92);
-		valuePtr = env;
+		// :;        zero segments
+		// :2>;      one seg, duration=2, end-value=0
+		// :>3;      one seg, duration=0, end-value=3
+		// :2>3;     one seg, duration=2, end-value=3
+		// :2>3:4>5; two segments
 		++tmp;
+		Envelope::Segs segs;
+		segs.add(0,92);
+		segs.add(10,92);
+		ptr<Envelope> env = ChainPool<Value>::instance().mk2<Envelope>(segs);
+		valuePtr = env;
 		str = tmp;
 		return true;
 	}

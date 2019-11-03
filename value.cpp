@@ -32,6 +32,11 @@ ptr<AudioBuffer> Oscillator::get(unsigned sampleNr, unsigned len, Ctx& ctx, ptr<
 	return buff;
 }
 
+ptr<Envelope> Envelope::mk(Segs& segs)
+{
+	return ChainPool<Value>::instance().mk2<Envelope>(segs);
+}
+
 ptr<AudioBuffer> Envelope::get(unsigned sampleNr, unsigned len, Ctx& ctx, ptr<DataBuffer> data)
 {
 	ptr<AudioBuffer> buff = ChainPool<AudioBuffer>::instance().mk(len);
@@ -61,7 +66,7 @@ ptr<AudioBuffer> Envelope::get(unsigned sampleNr, unsigned len, Ctx& ctx, ptr<Da
 	return buff;
 }
 
-void Envelope::addSegment(float duration, float value)
+void Envelope::Segs::add(float duration, float value)
 {
 	segments_.push_back(pair<float, float>(duration, value));
 }

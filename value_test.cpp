@@ -132,11 +132,12 @@ TEST(Value, envelope)
 	TestCtx ctx;
 	ChainPool<Value>::Scope valuePool(10);
 	ChainPool<AudioBuffer>::Scope bufferPool(10);
-	ptr<Envelope> env = ChainPool<Value>::instance().mk2<Envelope>();
+	Envelope::Segs segs;
 	//1>4:2>4:1>;
-	env->addSegment(.001,4);
-	env->addSegment(.002,4);
-	env->addSegment(.001,1);
+	segs.add(.001,4);
+	segs.add(.002,4);
+	segs.add(.001,1);
+	ptr<Envelope> env = ChainPool<Value>::instance().mk2<Envelope>(segs);
 
 	ExpBuff exp(64, "     %UTD3Y==!$_BRY:/UUTD3]TT;4_BR[:/Z*+_C]==!% Z*(C0'31-4#__T= BRY:0!==;$\"BBWY   \" 0   @$   (!   \" 0   @$   (!   \" 0   @$   (!   \" 0   @$   (!   \" 0   @$   (!   \" 0   @$   (!   \" 0   @$   (!   \" 0   @$   (!   \" 0   @$   (!   \" 0.FB=4   &A &%U:0\"^Z3$!&%S] 7G0Q0'71(T\",+A9 I(L(0';1]3^DB]H_TT6_/P( I#\\PNH@_  \" /P  @#\\  ( _  \" /P  @#\\  ( _  \" /P  ");
 	ptr<AudioBuffer> got = env->get(0, 64, ctx,nullptr);
@@ -150,7 +151,8 @@ TEST(Value, empty_envelope)
 	TestCtx ctx;
 	ChainPool<Value>::Scope valuePool(10);
 	ChainPool<AudioBuffer>::Scope bufferPool(10);
-	ptr<Envelope> env = ChainPool<Value>::instance().mk2<Envelope>();
+	Envelope::Segs segs;
+	ptr<Envelope> env = ChainPool<Value>::instance().mk2<Envelope>(segs);
 
 	ExpBuff exp(64, "                                                                                                                                                                                                                                                                                                                                                        ");
 	ptr<AudioBuffer> got = env->get(0, 64, ctx,nullptr);
@@ -164,13 +166,14 @@ TEST(Value, non_continous_envelope)
 	TestCtx ctx;
 	ChainPool<Value>::Scope valuePool(10);
 	ChainPool<AudioBuffer>::Scope bufferPool(10);
-	ptr<Envelope> env = ChainPool<Value>::instance().mk2<Envelope>();
+	Envelope::Segs segs;
 	// :>4:1>4:>3:1>3:>2;
-	env->addSegment(0,4);
-	env->addSegment(0.001,4);
-	env->addSegment(0,3);
-	env->addSegment(0.001,3);
-	env->addSegment(0,2);
+	segs.add(0,4);
+	segs.add(0.001,4);
+	segs.add(0,3);
+	segs.add(0.001,3);
+	segs.add(0,2);
+	ptr<Envelope> env = ChainPool<Value>::instance().mk2<Envelope>(segs);
 
 	ExpBuff exp(64, "  \" 0   @$   (!   \" 0   @$   (!   \" 0   @$   (!   \" 0   @$   (!   \" 0   @$   (!   ! 0   0$   $!   ! 0   0$   $!   ! 0   0$   $!   ! 0   0$   $!   ! 0   0$    !     0    $    !     0    $    !     0    $    !     0    $    !     0    $    !     0    $    !     0    $    !     0    $    !     0    $    !     0    $    !     0    $    !     0   ");
 	ptr<AudioBuffer> got = env->get(0, 64, ctx,nullptr);
@@ -204,5 +207,7 @@ public:
 };
 TEST(Value, experimental_env_construction)
 {
-	Env env(Segs().add(8,8));
+	Segs segs;
+	segs.add(8,8).add(7,7);
+	Env env(segs);
 }
